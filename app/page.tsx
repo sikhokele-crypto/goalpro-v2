@@ -1,57 +1,103 @@
 "use client";
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const API_KEY = 'a14dbd219f66d6191e6df8757a94771c';
 
 export default function GoalPro() {
+  const [fixtures, setFixtures] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isPaid, setIsPaid] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
+
+  const freeMarkets = ["1x2", "Overs_Unders"];
+
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
+          params: { 
+            date: new Date().toISOString().split('T')[0],
+            status: 'NS' // Only fetch 'Not Started' games
+          },
+          headers: { 'x-apisports-key': API_KEY }
+        });
+        setFixtures(response.data.response);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching games", error);
+        setLoading(false);
+      }
+    };
+    fetchGames();
+  }, []);
+
+  const generateAIResult = (home: string, away: string, market: string) => {
+    // Logic to generate consistent predictions
+    const seed = home.length + away.length;
+    if (market === "1x2") return seed % 3 === 0 ? "Home Win" : seed % 3 === 1 ? "Away Win" : "Draw";
+    if (market === "Btts") return seed % 2 === 0 ? "Yes" : "No";
+    if (market === "Total_Corners") return "Over " + (8.5 + (seed % 3));
+    if (market === "Overs_Unders") return "Over 2.5";
+    if (market === "Home_Overs") return "Over 1.5";
+    if (market === "Away_Overs") return "Over 0.5";
+    if (market === "Correct_Score") return (seed % 3) + "-" + (seed % 2);
+    if (market === "Double_Chance") return "1X";
+    if (market === "Half_Time") return "Draw";
+    if (market === "Handicap") return "-1.0";
+    return "Analysing...";
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center text-blue-500">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+      <p className="font-black uppercase tracking-widest text-xs">Fetching 250+ Live Teams...</p>
+    </div>
+  );
+
   return (
-    <main className="min-h-screen bg-[#020617] text-slate-100 p-6 font-sans flex flex-col items-center">
-      {/* Brand Header */}
-      <div className="w-full max-w-md flex justify-between items-center mb-10 border-b border-slate-800 pb-5">
-        <h1 className="text-3xl font-black italic text-blue-500 tracking-tighter">GOALPRO</h1>
-        <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-          Free Predictions
-        </div>
+    <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans">
+      <header className="max-w-md mx-auto mb-8 border-b border-slate-800 pb-4 flex justify-between items-center">
+        <h1 className="text-3xl font-black text-blue-500 italic uppercase tracking-tighter">GOALPRO</h1>
+        <button onClick={() => setIsPaid(!isPaid)} className={`text-[10px] px-4 py-1.5 rounded-full font-bold transition-all ${isPaid ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white animate-pulse'}`}>
+          {isPaid ? "PREMIUM ACTIVE" : "UNLOCK ALL TIPS"}
+        </button>
+      </header>
+
+      <div className="max-w-md mx-auto space-y-4">
+        {fixtures.slice(0, 250).map((item: any) => (
+          <div key={item.fixture.id} className="bg-[#0f172a] rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
+            <div className="p-4 flex justify-between items-center border-b border-white/5">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">{item.league.name}</span>
+                <span className="text-lg font-black tracking-tight">{item.teams.home.name} <span className="text-blue-500/50 mx-1 text-sm">VS</span> {item.teams.away.name}</span>
+              </div>
+              <button 
+                onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)}
+                className="bg-slate-800 p-2 rounded-xl text-[10px] font-bold text-blue-400"
+              >
+                {selectedMatch === item.fixture.id ? "HIDE" : "VIEW"}
+              </button>
+            </div>
+
+            {selectedMatch === item.fixture.id && (
+              <div className="p-4 grid grid-cols-1 gap-2 bg-black/20">
+                {["1x2", "Btts", "Overs_Unders", "Total_Corners", "Home_Overs", "Away_Overs", "Correct_Score", "Double_Chance", "Half_Time", "Handicap"].map((m) => {
+                  const isLocked = !isPaid && !freeMarkets.includes(m);
+                  return (
+                    <div key={m} className="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl border border-white/5">
+                      <span className="text-[9px] text-slate-500 font-bold uppercase">{m.replace('_', ' ')}</span>
+                      <span className={`text-xs font-black ${isLocked ? 'blur-md select-none' : 'text-emerald-400'}`}>
+                        {isLocked ? "LOCKED" : generateAIResult(item.teams.home.name, item.teams.away.name, m)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-
-      {/* Match Card */}
-      <div className="w-full max-w-md bg-[#0f172a] rounded-3xl border border-slate-800 p-6 shadow-2xl">
-        <div className="flex justify-between text-[10px] text-slate-500 mb-4 font-bold uppercase tracking-widest">
-          <span>Premier League</span>
-          <span>20:45</span>
-        </div>
-        
-        <div className="flex justify-between items-center mb-8 px-2 text-center">
-          <span className="text-xl font-bold flex-1 text-left">Arsenal</span>
-          <span className="text-slate-700 font-black px-3 text-sm">VS</span>
-          <span className="text-xl font-bold flex-1 text-right">Liverpool</span>
-        </div>
-
-        {/* Markets Grid - All Unlocked */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-slate-900 p-3 rounded-xl text-center border border-slate-800">
-            <p className="text-[9px] text-slate-500 uppercase mb-1 font-bold">Result</p>
-            <p className="text-blue-400 font-black text-sm">Home Win</p>
-          </div>
-          
-          <div className="bg-slate-900 p-3 rounded-xl text-center border border-slate-800">
-            <p className="text-[9px] text-slate-500 uppercase mb-1 font-bold">Corners</p>
-            <p className="text-emerald-400 font-black text-sm">Over 10.5</p>
-          </div>
-
-          <div className="bg-slate-900 p-3 rounded-xl text-center border border-slate-800">
-            <p className="text-[9px] text-slate-500 uppercase mb-1 font-bold">BTTS</p>
-            <p className="text-emerald-400 font-black text-sm">Yes</p>
-          </div>
-        </div>
-
-        <div className="mt-8 p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl text-center">
-          <p className="text-slate-400 text-[11px] font-medium italic">
-            "High probability banker tips updated daily."
-          </p>
-        </div>
-      </div>
-      
-      <p className="mt-8 text-[10px] text-slate-600 font-medium tracking-widest uppercase">
-        GoalPro Analysis 2026
-      </p>
     </main>
   );
 }
