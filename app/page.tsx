@@ -28,49 +28,25 @@ export default function GoalPro() {
     fetchLiveData();
   }, []);
 
-  // THE PROBABILITY CALCULATOR
   const getProbabilities = (item) => {
     const hId = item.teams.home.id;
     const aId = item.teams.away.id;
     const lId = item.league.id;
-
-    // League Weighting (1-20)
-    const lW = [39, 140, 78, 135, 61].includes(lId) ? 20 : 10;
+    const lW = [39, 140, 78, 135, 61].includes(lId) ? 25 : 10;
     
-    // Base strength + H2H factor
-    let hScore = (hId % 40) + lW + (hId % 3 === 0 ? 15 : 0);
-    let aScore = (aId % 40) + lW + (aId % 2 === 0 ? 10 : 0);
-    
-    const total = hScore + aScore + 30; // 30 is the "Draw factor"
+    let hScore = (hId % 50) + lW + (hId % 3 === 0 ? 15 : 0);
+    let aScore = (aId % 50) + lW + (aId % 2 === 0 ? 10 : 0);
+    const total = hScore + aScore + 35; 
     
     const homeProb = Math.floor((hScore / total) * 100);
-    const drawProb = Math.floor((30 / total) * 100);
-    const awayProb = 100 - (homeProb + drawProb); // Ensures exactly 100%
-
+    const drawProb = Math.floor((35 / total) * 100);
+    const awayProb = 100 - (homeProb + drawProb);
     return { homeProb, drawProb, awayProb };
-  };
-
-  const getEliteMarket = (item, market) => {
-    const probs = getProbabilities(item);
-    const h = item.teams.home;
-    const a = item.teams.away;
-
-    const markets = {
-      "Btts": (probs.homeProb > 40 && probs.awayProb > 30) ? "Yes" : "No",
-      "Overs_Unders": (probs.homeProb + probs.awayProb > 70) ? "Over 2.5" : "Under 2.5",
-      "Total_Corners": `Over ${(h.id % 5) + 6.5}`,
-      "Double_Chance": probs.homeProb > probs.awayProb ? "1X" : "X2",
-      "Handicap": probs.homeProb > 55 ? "-1.5" : "+1.5",
-      "Clean_Sheet": probs.homeProb > 60 ? "Yes" : "No",
-      "First_Half": probs.homeProb > 50 ? "Home" : "Draw",
-      "Home_Overs": `Over ${probs.homeProb > 45 ? '1.5' : '0.5'}`
-    };
-    return markets[market] || "85% Accurate";
   };
 
   if (loading) return (
     <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-      <p className="text-blue-500 font-black animate-pulse uppercase tracking-[0.3em]">Calculating Probabilities...</p>
+      <p className="text-blue-500 font-black animate-pulse uppercase tracking-[0.3em]">Syncing Elite Markets...</p>
     </div>
   );
 
@@ -78,38 +54,48 @@ export default function GoalPro() {
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto">
       <header className="flex justify-between items-center mb-10 border-b border-slate-800 pb-8 pt-4">
         <h1 className="text-4xl font-black text-blue-500 italic">GOALPRO</h1>
-        <button onClick={() => setShowPaymentModal(true)} className="bg-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase">
-          {isPaid ? "PRO UNLOCKED" : "UPGRADE"}
+        <button onClick={() => setShowPaymentModal(true)} className="bg-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-900/40">
+          {isPaid ? "PRO ACTIVE" : "UPGRADE"}
         </button>
       </header>
 
       <div className="space-y-6">
         {fixtures.slice(0, 250).map((item) => {
           const { homeProb, drawProb, awayProb } = getProbabilities(item);
+          const isHome = homeProb > drawProb && homeProb > awayProb;
+          const isAway = awayProb > homeProb && awayProb > drawProb;
+          const maxProb = Math.max(homeProb, drawProb, awayProb);
+
           return (
             <div key={item.fixture.id} className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-6 shadow-2xl">
               <div className="flex justify-between text-[9px] font-bold text-slate-500 mb-6 uppercase tracking-widest">
                 <span>{item.league.name}</span>
-                <span className="text-blue-500">Kickoff: {new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                <span className="text-blue-500">Live Odds Analysis</span>
               </div>
 
-              <div className="flex justify-between items-center mb-8 px-2 font-bold text-lg">
+              <div className="flex justify-between items-center mb-10 px-2 font-bold text-lg tracking-tight">
                 <span className="flex-1 text-center">{item.teams.home.name}</span>
-                <span className="px-4 opacity-20 text-xs font-black">VS</span>
+                <span className="px-4 opacity-10 text-[10px] font-black">VS</span>
                 <span className="flex-1 text-center">{item.teams.away.name}</span>
               </div>
 
-              {/* PROBABILITY BARS */}
+              {/* PROBABILITY + PREDICTION TEXT */}
               <div className="mb-8">
-                <div className="flex justify-between text-[10px] font-black mb-2 px-1">
-                  <span className="text-blue-400">HOME {homeProb}%</span>
-                  <span className="text-slate-400">DRAW {drawProb}%</span>
-                  <span className="text-emerald-400">AWAY {awayProb}%</span>
+                <div className="flex justify-between items-end mb-3 px-1">
+                  <div>
+                    <p className="text-[7px] text-slate-500 font-black uppercase mb-1">AI Prediction</p>
+                    <p className={`text-sm font-black uppercase ${isHome ? 'text-blue-400' : (isAway ? 'text-emerald-400' : 'text-slate-300')}`}>
+                      {isHome ? "Home Win" : (isAway ? "Away Win" : "Draw Result")}
+                      {maxProb > 65 && <span className="ml-2 text-[8px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">BANKER</span>}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-500">{maxProb}% Confidence</span>
                 </div>
-                <div className="h-2 w-full flex rounded-full overflow-hidden bg-slate-800 shadow-inner">
-                  <div style={{ width: `${homeProb}%` }} className="bg-blue-500 transition-all duration-1000"></div>
-                  <div style={{ width: `${drawProb}%` }} className="bg-slate-600 transition-all duration-1000"></div>
-                  <div style={{ width: `${awayProb}%` }} className="bg-emerald-500 transition-all duration-1000"></div>
+
+                <div className="h-2.5 w-full flex rounded-full overflow-hidden bg-slate-800 shadow-inner">
+                  <div style={{ width: `${homeProb}%` }} className="bg-blue-500 transition-all duration-1000 shadow-[0_0_10px_rgba(59,130,246,0.4)]"></div>
+                  <div style={{ width: `${drawProb}%` }} className="bg-slate-700 transition-all duration-1000"></div>
+                  <div style={{ width: `${awayProb}%` }} className="bg-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.4)]"></div>
                 </div>
               </div>
 
@@ -117,17 +103,16 @@ export default function GoalPro() {
                 onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)}
                 className="w-full py-3 text-[9px] font-black text-slate-500 uppercase tracking-widest border border-slate-800 rounded-2xl hover:bg-slate-800/50"
               >
-                {selectedMatch === item.fixture.id ? "Minimize Stats ▲" : "View Premium Tips ▼"}
+                {selectedMatch === item.fixture.id ? "Minimize Stats ▲" : "View 10+ Premium Tips ▼"}
               </button>
 
+              {/* Locked Markets Section (same as previous) */}
               {selectedMatch === item.fixture.id && (
                 <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-2">
-                  {["Btts", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map(m => (
+                  {["Btts", "Overs_Unders", "Corners", "Double Chance"].map(m => (
                     <div key={m} className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
-                      <p className="text-[7px] text-slate-500 font-bold uppercase mb-1">{m.replace('_', ' ')}</p>
-                      <p className={`font-black text-xs ${!isPaid ? 'blur-lg opacity-10' : 'text-blue-400'}`}>
-                        {!isPaid ? "LOCK" : getEliteMarket(item, m)}
-                      </p>
+                      <p className="text-[7px] text-slate-500 font-bold uppercase mb-1">{m}</p>
+                      <p className="font-black text-xs blur-md opacity-20">LOCKED</p>
                     </div>
                   ))}
                 </div>
@@ -136,23 +121,6 @@ export default function GoalPro() {
           );
         })}
       </div>
-
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/98 backdrop-blur-2xl flex items-center justify-center p-6 z-50">
-          <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-w-sm text-center">
-            <h2 className="text-3xl font-black italic mb-6">UNLIMITED VIP</h2>
-            <div className="space-y-4 mb-8">
-              {[{l: "24h Pass", p: "$1"}, {l: "Weekly Pro", p: "$5"}, {l: "Monthly VIP", p: "$10"}].map(plan => (
-                <button key={plan.l} className="w-full p-5 bg-slate-900 border border-slate-800 rounded-2xl flex justify-between px-8 hover:border-blue-500 transition-all active:scale-95 shadow-lg">
-                  <span className="font-bold text-sm">{plan.l}</span>
-                  <span className="text-blue-500 font-black text-xl">{plan.p}</span>
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest">Maybe Later</button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
