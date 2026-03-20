@@ -63,6 +63,7 @@ export default function GoalPro() {
     return markets[market] || "85% IQ";
   };
 
+  // REFINED AD COMPONENT WITH HYDRATION DELAY
   const AdSlot = () => {
     useEffect(() => {
       const timeout = setTimeout(() => {
@@ -112,7 +113,7 @@ export default function GoalPro() {
       <header className="sticky top-0 z-40 bg-[#020617]/95 backdrop-blur-md pt-4 pb-6 border-b border-slate-800/50 mb-8 px-2">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-black text-blue-500 italic tracking-tighter">GOALPRO</h1>
-          <button onClick={() => !isPaid && setShowPaymentModal(true)} className={`${isPaid ? 'bg-emerald-600' : 'bg-blue-600'} px-5 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20`}>
+          <button onClick={() => setShowPaymentModal(true)} className="bg-blue-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20">
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
@@ -182,6 +183,7 @@ export default function GoalPro() {
                 {selectedMatch === item.fixture.id && (
                   <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                     {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m) => {
+                      // All markets are now locked for non-paid users
                       const showData = isPaid; 
                       return (
                         <div 
@@ -194,7 +196,7 @@ export default function GoalPro() {
                             <p className={`font-black text-sm ${!showData ? 'blur-md opacity-20 select-none' : 'text-blue-400'}`}>
                               {showData ? getEliteMarket(item, m) : "LOCKED"}
                             </p>
-                            {!showData && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">VIP</span>}
+                            {!showData && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black uppercase">VIP</span>}
                           </div>
                         </div>
                       );
@@ -207,21 +209,14 @@ export default function GoalPro() {
         })}
       </div>
 
-      <footer className="mt-16 pt-8 border-t border-slate-800 text-center pb-12 px-4">
-        <div className="flex justify-center flex-wrap gap-x-6 gap-y-3 text-[10px] font-black text-blue-500 uppercase italic mb-8">
-          <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-          <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-          <Link href="/guide" className="hover:text-white transition-colors">Betting Guide</Link>
-          <Link href="/contact" className="hover:text-white transition-colors">Support</Link>
-        </div>
-        
-        <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-tighter opacity-60">
+      <footer className="mt-16 pt-8 border-t border-slate-800 text-center pb-8 px-4">
+        <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-tighter">
           18+ | BeGambleAware | Responsible Gambling
         </p>
-        
-        <p className="text-[8px] text-slate-700 font-medium uppercase tracking-[0.3em]">
-          © 2026 GoalPro V2 Analysis. All Rights Reserved.
-        </p>
+        <div className="flex justify-center gap-6 text-[10px] font-black text-blue-500 uppercase italic">
+          <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/guide">Betting Guide</Link>
+        </div>
       </footer>
 
       {showPaymentModal && (
@@ -236,11 +231,7 @@ export default function GoalPro() {
                   // @ts-ignore
                   window.paypal.Buttons({
                     createOrder: (data, actions) => actions.order.create({ purchase_units: [{ amount: { value: "1.00" } }] }),
-                    onApprove: (data, actions) => actions.order.capture().then(() => { 
-                        setIsPaid(true); 
-                        setShowPaymentModal(false); 
-                        window.location.href = '/success'; 
-                    })
+                    onApprove: (data, actions) => actions.order.capture().then(() => { setIsPaid(true); setShowPaymentModal(false); })
                   }).render('#paypal-button-container');
                 }}
               />
