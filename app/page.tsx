@@ -241,4 +241,14 @@ export default function GoalPro() {
                         setShowPaymentModal(false); 
                         window.location.href = '/success'; 
                     })
-                  }).render('#paypal-button-container
+                  }).render('#paypal-button-container');
+                }}
+              />
+            </div>
+            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">Close</button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
