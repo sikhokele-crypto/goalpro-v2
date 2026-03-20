@@ -29,7 +29,7 @@ export default function GoalPro() {
     fetchLiveData();
   }, []);
 
-  const getProbabilities = (item) => {
+  const getProbabilities = (item: any) => {
     const hId = item.teams.home.id;
     const aId = item.teams.away.id;
     const lId = item.league.id;
