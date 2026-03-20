@@ -48,7 +48,7 @@ export default function GoalPro() {
     };
   };
 
-  const getEliteMarket = (item, market) => {
+  const getEliteMarket = (item: any, market: any) => {
     const { homeProb, awayProb } = getProbabilities(item);
     const markets = {
       "BTTS": (homeProb > 42 && awayProb > 38) ? "Yes" : "No",
@@ -63,18 +63,29 @@ export default function GoalPro() {
     return markets[market] || "85% IQ";
   };
 
-  // Automated Ad Component
-  const AdSlot = () => (
-    <div className="my-6 p-2 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 text-center min-h-[100px]">
-      <p className="text-[7px] text-slate-600 uppercase mb-2">Advertisement</p>
-      <ins className="adsbygoogle"
-           style={{ display: 'block' }}
-           data-ad-client={`ca-${PUB_ID}`}
-           data-ad-slot="auto"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-    </div>
-  );
+  // Automated Ad Component with Initialization Logic
+  const AdSlot = () => {
+    useEffect(() => {
+      try {
+        // @ts-ignore
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (e) {
+        console.error("AdSense error:", e);
+      }
+    }, []);
+
+    return (
+      <div className="my-6 p-2 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 text-center min-h-[100px] overflow-hidden">
+        <p className="text-[7px] text-slate-600 uppercase mb-2">Advertisement</p>
+        <ins className="adsbygoogle"
+             style={{ display: 'block' }}
+             data-ad-client={`ca-${PUB_ID}`}
+             data-ad-slot="auto"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+      </div>
+    );
+  };
 
   const filteredFixtures = fixtures.filter(f => 
     f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,6 +100,14 @@ export default function GoalPro() {
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-32">
+      {/* Main AdSense Script */}
+      <Script 
+        async 
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} 
+        crossOrigin="anonymous" 
+        strategy="afterInteractive"
+      />
+
       <header className="sticky top-0 z-40 bg-[#020617]/95 backdrop-blur-md pt-4 pb-6 border-b border-slate-800/50 mb-8 px-2">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-black text-blue-500 italic tracking-tighter">GOALPRO</h1>
@@ -105,7 +124,7 @@ export default function GoalPro() {
         />
       </header>
 
-      <AdSlot /> {/* Top Ad */}
+      <AdSlot /> 
 
       <div className="space-y-8">
         {filteredFixtures.slice(0, 50).map((item, index) => {
@@ -116,7 +135,6 @@ export default function GoalPro() {
 
           return (
             <div key={item.fixture.id}>
-              {/* Show an ad every 6 matches */}
               {index % 6 === 0 && index !== 0 && <AdSlot />}
 
               <div className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800/80 p-6 shadow-2xl">
@@ -147,7 +165,7 @@ export default function GoalPro() {
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   <button 
                     onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)}
-                    className="w-full py-4 text-[9px] font-black text-white uppercase tracking-widest bg-blue-600/10 border border-blue-500/20 rounded-2xl"
+                    className="w-full py-4 text-[9px] font-black text-white uppercase tracking-widest bg-blue-600/10 border border-blue-500/20 rounded-2xl cursor-pointer"
                   >
                     {selectedMatch === item.fixture.id ? "Close Stats ▲" : "View Full Analysis ▼"}
                   </button>
@@ -162,21 +180,25 @@ export default function GoalPro() {
 
                 {selectedMatch === item.fixture.id && (
                   <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3">
-                    {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m) => (
-                      <div 
-                        key={m} 
-                        onClick={() => !isPaid && setShowPaymentModal(true)}
-                        className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800/50 cursor-pointer"
-                      >
-                        <p className="text-[8px] text-slate-300 font-black uppercase mb-1">{m.replace('_', ' ')}</p>
-                        <div className="flex justify-between items-center">
-                          <p className={`font-black text-sm ${!isPaid ? 'blur-md opacity-20 select-none' : 'text-blue-400'}`}>
-                            {!isPaid ? "LOCKED" : getEliteMarket(item, m)}
-                          </p>
-                          {!isPaid && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black">UPGRADE</span>}
+                    {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m, i) => {
+                      const isFree = i < 2; 
+                      const showData = isPaid || isFree;
+                      return (
+                        <div 
+                          key={m} 
+                          onClick={() => !showData && setShowPaymentModal(true)}
+                          className={`p-4 rounded-2xl border ${!showData ? 'bg-slate-900/30 border-slate-800/30 cursor-pointer' : 'bg-slate-900/80 border-blue-500/20'}`}
+                        >
+                          <p className="text-[8px] text-slate-300 font-black uppercase mb-1 tracking-widest">{m.replace('_', ' ')}</p>
+                          <div className="flex justify-between items-center">
+                            <p className={`font-black text-sm ${!showData ? 'blur-md opacity-20' : 'text-blue-400'}`}>
+                              {showData ? getEliteMarket(item, m) : "LOCKED"}
+                            </p>
+                            {!showData && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black uppercase">Unlock</span>}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -185,7 +207,6 @@ export default function GoalPro() {
         })}
       </div>
 
-      {/* COMPLIANCE FOOTER FOR ADSENSE */}
       <footer className="mt-16 pt-8 border-t border-slate-800 text-center pb-8 px-4">
         <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-tighter">
           18+ | BeGambleAware | Responsible Gambling
