@@ -21,19 +21,27 @@ export default function GoalPro() {
     const fetchLiveData = async () => {
       try {
         setLoading(true);
-        // Gets today's date in YYYY-MM-DD format
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        // If it's after 10 PM, fetch tomorrow's games so the screen isn't empty
+        if (now.getHours() >= 22) {
+          now.setDate(now.getDate() + 1);
+        }
+        const targetDate = now.toISOString().split('T')[0];
+        
         const res = await axios.get('https://v3.football.api-sports.io/fixtures', {
-          params: { date: today },
+          params: { date: targetDate },
           headers: { 
             'x-apisports-key': API_KEY,
             'x-rapidapi-host': 'v3.football.api-sports.io'
           }
         });
-        setFixtures(res.data.response || []);
+        
+        const validMatches = (res.data.response || []).filter(f => 
+          f.fixture.status.short !== 'FT' && f.fixture.status.short !== 'AET'
+        );
+        setFixtures(validMatches);
         setLoading(false);
       } catch (err) {
-        console.error("API Error:", err);
         setLoading(false);
       }
     };
@@ -76,15 +84,13 @@ export default function GoalPro() {
         try {
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
-        } catch (e) {
-          console.error("AdSense Error:", e);
-        }
+        } catch (e) {}
       }, 150);
       return () => clearTimeout(timeout);
     }, []);
 
     return (
-      <div className="my-6 p-2 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 text-center min-h-[120px] overflow-hidden">
+      <div className="my-6 p-2 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 text-center min-h-[120px]">
         <p className="text-[7px] text-slate-600 uppercase mb-2 tracking-widest font-bold">Sponsored Analysis</p>
         <ins className="adsbygoogle"
              style={{ display: 'block', minHeight: '100px' }}
@@ -99,12 +105,6 @@ export default function GoalPro() {
   const filteredFixtures = fixtures.filter(f => 
     f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     f.league.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) return (
-    <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-      <p className="text-blue-500 font-black animate-pulse uppercase tracking-widest text-center">Loading Live Matches...</p>
-    </div>
   );
 
   return (
@@ -135,8 +135,10 @@ export default function GoalPro() {
       <AdSlot /> 
 
       <div className="space-y-8">
-        {filteredFixtures.length === 0 ? (
-          <p className="text-center text-slate-500 uppercase text-[10px] font-bold tracking-widest py-20">No active matches found for today.</p>
+        {loading ? (
+           <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] tracking-widest py-20">Analyzing Markets...</p>
+        ) : filteredFixtures.length === 0 ? (
+          <p className="text-center text-slate-500 uppercase text-[10px] font-bold tracking-widest py-20">No active matches found.</p>
         ) : (
           filteredFixtures.slice(0, 50).map((item, index) => {
             const { homeProb, drawProb, awayProb } = getProbabilities(item);
@@ -173,9 +175,9 @@ export default function GoalPro() {
                     <a href={BETWAY_AFFILIATE_URL} target="_blank" className="w-full py-4 text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center flex items-center justify-center">Betway</a>
                   </div>
                   {selectedMatch === item.fixture.id && (
-                    <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3">
                       {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m) => (
-                        <div key={m} onClick={() => !isPaid && setShowPaymentModal(true)} className={`p-4 rounded-2xl border transition-all ${!isPaid ? 'bg-slate-900/30 border-slate-800/30 cursor-pointer' : 'bg-slate-900/80 border-blue-500/20'}`}>
+                        <div key={m} onClick={() => !isPaid && setShowPaymentModal(true)} className={`p-4 rounded-2xl border ${!isPaid ? 'bg-slate-900/30 border-slate-800/30 cursor-pointer' : 'bg-slate-900/80 border-blue-500/20'}`}>
                           <p className="text-[8px] text-slate-300 font-black uppercase mb-1 tracking-widest">{m.replace('_', ' ')}</p>
                           <div className="flex justify-between items-center">
                             <p className={`font-black text-sm ${!isPaid ? 'blur-md opacity-20 select-none' : 'text-blue-400'}`}>{isPaid ? getEliteMarket(item, m) : "LOCKED"}</p>
@@ -205,26 +207,32 @@ export default function GoalPro() {
 
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/98 backdrop-blur-2xl flex items-center justify-center p-6 z-50">
-          <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-w-sm text-center shadow-2xl">
+          <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-sm text-center shadow-2xl">
             <h2 className="text-3xl font-black italic mb-2 tracking-tighter uppercase text-white">Unlock VIP</h2>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10">Instant Access to Elite Markets</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10">Get Full Markets & IQ Predictions</p>
             <div id="paypal-button-container" className="mb-6 min-h-[150px]">
               <Script 
                 src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`} 
                 onLoad={() => {
                   // @ts-ignore
-                  window.paypal.Buttons({
-                    createOrder: (data, actions) => actions.order.create({ purchase_units: [{ amount: { value: "1.00" } }] }),
-                    onApprove: (data, actions) => actions.order.capture().then(() => { 
-                        setIsPaid(true); 
-                        setShowPaymentModal(false); 
-                        window.location.href = '/success'; 
-                    })
-                  }).render('#paypal-button-container');
+                  if (window.paypal) {
+                    window.paypal.Buttons({
+                      style: { layout: 'vertical', color: 'blue', shape: 'pill', label: 'pay' },
+                      createOrder: (data, actions) => actions.order.create({
+                        purchase_units: [{ amount: { currency_code: "USD", value: "1.00" } }]
+                      }),
+                      onApprove: (data, actions) => actions.order.capture().then(() => { 
+                          setIsPaid(true); 
+                          setShowPaymentModal(false); 
+                          window.location.href = '/success'; 
+                      })
+                    }).render('#paypal-button-container');
+                  }
                 }}
               />
             </div>
             <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest hover:text-white">Close</button>
+            <p className="text-slate-600 text-[8px] mt-4 uppercase font-bold tracking-widest opacity-40">Approx. R18.90 • Secure SSL Payment</p>
           </div>
         </div>
       )}
