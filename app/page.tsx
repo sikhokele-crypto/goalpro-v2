@@ -21,24 +21,35 @@ export default function GoalPro() {
     const fetchLiveData = async () => {
       try {
         setLoading(true);
+        // FORCE SEARCH: We check both Today and Tomorrow to ensure the list is never empty
         const now = new Date();
-        // DATE LOGIC: It's Saturday morning, so we fetch today's matches
-        const targetDate = now.toISOString().split('T')[0];
+        const today = now.toISOString().split('T')[0];
+        now.setDate(now.getDate() + 1);
+        const tomorrow = now.toISOString().split('T')[0];
         
         const res = await axios.get('https://v3.football.api-sports.io/fixtures', {
-          params: { date: targetDate },
-          headers: { 
-            'x-apisports-key': API_KEY,
-            'x-rapidapi-host': 'v3.football.api-sports.io'
-          }
+          params: { date: today },
+          headers: { 'x-apisports-key': API_KEY, 'x-rapidapi-host': 'v3.football.api-sports.io' }
         });
+
+        let allMatches = res.data.response || [];
+
+        // If today is almost over (like right now), grab tomorrow's games too
+        if (allMatches.length < 10) {
+           const res2 = await axios.get('https://v3.football.api-sports.io/fixtures', {
+             params: { date: tomorrow },
+             headers: { 'x-apisports-key': API_KEY, 'x-rapidapi-host': 'v3.football.api-sports.io' }
+           });
+           allMatches = [...allMatches, ...(res2.data.response || [])];
+        }
+
+        // Filter for matches that haven't finished (Status: NS, 1H, 2H, HT)
+        const active = allMatches.filter(f => !['FT', 'AET', 'PEN'].includes(f.fixture.status.short));
         
-        const validMatches = (res.data.response || []).filter(f => 
-          f.fixture.status.short !== 'FT' && f.fixture.status.short !== 'AET'
-        );
-        setFixtures(validMatches);
+        setFixtures(active);
         setLoading(false);
       } catch (err) {
+        console.error("API Call Failed");
         setLoading(false);
       }
     };
@@ -48,8 +59,8 @@ export default function GoalPro() {
   const getProbabilities = (item: any) => {
     const hId = item.teams.home.id;
     const aId = item.teams.away.id;
-    let hScore = (hId % 50) + (hId % 3 === 0 ? 15 : 10);
-    let aScore = (item.teams.away.id % 50) + (item.teams.away.id % 2 === 0 ? 10 : 5);
+    let hScore = (hId % 50) + 20;
+    let aScore = (aId % 50) + 15;
     const total = hScore + aScore + 35; 
     return { 
       homeProb: Math.floor((hScore / total) * 100), 
@@ -93,7 +104,7 @@ export default function GoalPro() {
         </div>
         <input 
           type="text"
-          placeholder="Search Live Fixtures..."
+          placeholder="Search Teams or Leagues..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold text-slate-200 focus:outline-none transition-all"
@@ -102,19 +113,22 @@ export default function GoalPro() {
 
       <div className="space-y-8">
         {loading ? (
-           <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20">Analyzing Saturday Markets...</p>
+           <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20 tracking-widest">Aggregating Live Data...</p>
         ) : filteredFixtures.length === 0 ? (
-          <p className="text-center text-slate-500 uppercase text-[10px] font-bold py-20">No active matches found.</p>
+          <div className="text-center py-20">
+             <p className="text-slate-500 uppercase text-[10px] font-bold mb-4">No active matches found.</p>
+             <button onClick={() => window.location.reload()} className="text-blue-500 text-[10px] font-black uppercase underline">Refresh Feed</button>
+          </div>
         ) : (
-          filteredFixtures.slice(0, 50).map((item, index) => {
+          filteredFixtures.slice(0, 40).map((item, index) => {
             const { homeProb, drawProb, awayProb } = getProbabilities(item);
             return (
-              <div key={item.fixture.id} className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800/80 p-6">
-                <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase">
+              <div key={item.fixture.id} className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800/80 p-6 shadow-xl">
+                <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase tracking-widest">
                   <span className="bg-slate-800/50 px-3 py-1 rounded-full">{item.league.name}</span>
                   <span className="text-blue-400">{new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                 </div>
-                <div className="flex justify-between items-center mb-10 px-2 font-black text-xl text-white uppercase">
+                <div className="flex justify-between items-center mb-10 px-2 font-black text-xl text-white uppercase tracking-tighter">
                   <span className="flex-1 text-center">{item.teams.home.name}</span>
                   <span className="px-4 opacity-10 text-[10px] italic">VS</span>
                   <span className="flex-1 text-center">{item.teams.away.name}</span>
@@ -146,10 +160,10 @@ export default function GoalPro() {
 
       <footer className="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
         <div className="flex justify-center flex-wrap gap-x-6 gap-y-3 text-[10px] font-black text-blue-500 uppercase italic mb-8">
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Terms</Link>
-          <Link href="/guide">Guide</Link>
-          <Link href="/contact">Support</Link>
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+          <Link href="/guide" className="hover:text-white transition-colors">Guide</Link>
+          <Link href="/contact" className="hover:text-white transition-colors">Support</Link>
         </div>
         <p className="text-[8px] text-slate-700 font-medium uppercase tracking-[0.3em]">© 2026 GoalPro V2</p>
       </footer>
@@ -183,7 +197,7 @@ export default function GoalPro() {
               />
             </div>
             <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase hover:text-white">Cancel</button>
-            <p className="text-[8px] text-slate-500 mt-4 uppercase font-bold opacity-40 italic">ZAR / NGN / USD Accepted</p>
+            <p className="text-[8px] text-slate-500 mt-4 uppercase font-bold opacity-40 italic">R / Naira / Dollar Accepted</p>
           </div>
         </div>
       )}
