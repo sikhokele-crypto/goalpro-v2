@@ -63,22 +63,25 @@ export default function GoalPro() {
     return markets[market] || "85% IQ";
   };
 
-  // Automated Ad Component with Initialization Logic
+  // REFINED AD COMPONENT WITH HYDRATION DELAY
   const AdSlot = () => {
     useEffect(() => {
-      try {
-        // @ts-ignore
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (e) {
-        console.error("AdSense error:", e);
-      }
+      const timeout = setTimeout(() => {
+        try {
+          // @ts-ignore
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (e) {
+          console.error("AdSense push error:", e);
+        }
+      }, 150);
+      return () => clearTimeout(timeout);
     }, []);
 
     return (
-      <div className="my-6 p-2 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 text-center min-h-[100px] overflow-hidden">
-        <p className="text-[7px] text-slate-600 uppercase mb-2">Advertisement</p>
+      <div className="my-6 p-2 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 text-center min-h-[120px] overflow-hidden">
+        <p className="text-[7px] text-slate-600 uppercase mb-2 tracking-widest font-bold">Sponsored Analysis</p>
         <ins className="adsbygoogle"
-             style={{ display: 'block' }}
+             style={{ display: 'block', minHeight: '100px' }}
              data-ad-client={`ca-${PUB_ID}`}
              data-ad-slot="auto"
              data-ad-format="auto"
@@ -100,7 +103,6 @@ export default function GoalPro() {
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-32">
-      {/* Main AdSense Script */}
       <Script 
         async 
         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} 
@@ -145,7 +147,7 @@ export default function GoalPro() {
 
                 <div className="flex justify-between items-center mb-10 px-2 font-black text-xl tracking-tight text-white uppercase">
                   <span className="flex-1 text-center">{item.teams.home.name}</span>
-                  <span className="px-4 opacity-10 text-[10px] italic">VS</span>
+                  <span className="px-4 opacity-10 text-[10px] italic text-slate-500">VS</span>
                   <span className="flex-1 text-center">{item.teams.away.name}</span>
                 </div>
 
@@ -165,36 +167,36 @@ export default function GoalPro() {
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   <button 
                     onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)}
-                    className="w-full py-4 text-[9px] font-black text-white uppercase tracking-widest bg-blue-600/10 border border-blue-500/20 rounded-2xl cursor-pointer"
+                    className="w-full py-4 text-[9px] font-black text-white uppercase tracking-widest bg-blue-600/10 border border-blue-500/20 rounded-2xl cursor-pointer hover:bg-blue-600/20 transition-colors"
                   >
                     {selectedMatch === item.fixture.id ? "Close Stats ▲" : "View Full Analysis ▼"}
                   </button>
                   <a 
                     href={BETWAY_AFFILIATE_URL} 
                     target="_blank"
-                    className="w-full py-4 text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center flex items-center justify-center"
+                    className="w-full py-4 text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center flex items-center justify-center hover:bg-emerald-600/20 transition-colors"
                   >
-                    Bet on Match
+                    Bet on Betway
                   </a>
                 </div>
 
                 {selectedMatch === item.fixture.id && (
-                  <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3">
-                    {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m, i) => {
-                      const isFree = i < 2; 
-                      const showData = isPaid || isFree;
+                  <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m) => {
+                      // All markets are now locked for non-paid users
+                      const showData = isPaid; 
                       return (
                         <div 
                           key={m} 
                           onClick={() => !showData && setShowPaymentModal(true)}
-                          className={`p-4 rounded-2xl border ${!showData ? 'bg-slate-900/30 border-slate-800/30 cursor-pointer' : 'bg-slate-900/80 border-blue-500/20'}`}
+                          className={`p-4 rounded-2xl border transition-all ${!showData ? 'bg-slate-900/30 border-slate-800/30 cursor-pointer' : 'bg-slate-900/80 border-blue-500/20'}`}
                         >
                           <p className="text-[8px] text-slate-300 font-black uppercase mb-1 tracking-widest">{m.replace('_', ' ')}</p>
                           <div className="flex justify-between items-center">
-                            <p className={`font-black text-sm ${!showData ? 'blur-md opacity-20' : 'text-blue-400'}`}>
+                            <p className={`font-black text-sm ${!showData ? 'blur-md opacity-20 select-none' : 'text-blue-400'}`}>
                               {showData ? getEliteMarket(item, m) : "LOCKED"}
                             </p>
-                            {!showData && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black uppercase">Unlock</span>}
+                            {!showData && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black uppercase">VIP</span>}
                           </div>
                         </div>
                       );
@@ -221,7 +223,7 @@ export default function GoalPro() {
         <div className="fixed inset-0 bg-black/98 backdrop-blur-2xl flex items-center justify-center p-6 z-50">
           <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-w-sm text-center shadow-2xl">
             <h2 className="text-3xl font-black italic mb-2 tracking-tighter uppercase text-white">Unlock VIP</h2>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10">Access all 8 analysis markets</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10">Get Full Markets & IQ Predictions</p>
             <div id="paypal-button-container" className="mb-6 min-h-[150px]">
               <Script 
                 src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`} 
@@ -234,7 +236,7 @@ export default function GoalPro() {
                 }}
               />
             </div>
-            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest">Close</button>
+            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">Close</button>
           </div>
         </div>
       )}
