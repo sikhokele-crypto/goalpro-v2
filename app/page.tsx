@@ -207,15 +207,21 @@ export default function GoalPro() {
         })}
       </div>
 
-      <footer className="mt-16 pt-8 border-t border-slate-800 text-center pb-8 px-4">
-        <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-tighter">
+      <footer className="mt-16 pt-8 border-t border-slate-800 text-center pb-12 px-4">
+        <div className="flex justify-center flex-wrap gap-x-6 gap-y-3 text-[10px] font-black text-blue-500 uppercase italic mb-8">
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+          <Link href="/guide" className="hover:text-white transition-colors">Betting Guide</Link>
+          <Link href="/contact" className="hover:text-white transition-colors">Support</Link>
+        </div>
+        
+        <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-tighter opacity-60">
           18+ | BeGambleAware | Responsible Gambling
         </p>
-        <div className="flex justify-center gap-6 text-[10px] font-black text-blue-500 uppercase italic">
-          <Link href="/privacy">Privacy Policy</Link>
-          <Link href="/guide">Betting Guide</Link>
-          <Link href="/contact">Support</Link>
-        </div>
+        
+        <p className="text-[8px] text-slate-700 font-medium uppercase tracking-[0.3em]">
+          © 2026 GoalPro V2 Analysis. All Rights Reserved.
+        </p>
       </footer>
 
       {showPaymentModal && (
@@ -233,16 +239,6 @@ export default function GoalPro() {
                     onApprove: (data, actions) => actions.order.capture().then(() => { 
                         setIsPaid(true); 
                         setShowPaymentModal(false); 
-                        window.location.href = '/success'; // AUTOMATIC REDIRECT
+                        window.location.href = '/success'; 
                     })
-                  }).render('#paypal-button-container');
-                }}
-              />
-            </div>
-            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">Close</button>
-          </div>
-        </div>
-      )}
-    </main>
-  );
-}
+                  }).render('#paypal-button-container
