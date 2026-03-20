@@ -20,20 +20,13 @@ export default function GoalPro() {
   useEffect(() => {
     const fetchLiveData = async () => {
       try {
-        setLoading(true);
-        // Gets today's date in YYYY-MM-DD format
-        const today = new Date().toISOString().split('T')[0];
         const res = await axios.get('https://v3.football.api-sports.io/fixtures', {
-          params: { date: today },
-          headers: { 
-            'x-apisports-key': API_KEY,
-            'x-rapidapi-host': 'v3.football.api-sports.io'
-          }
+          params: { date: new Date().toISOString().split('T')[0], status: 'NS' },
+          headers: { 'x-apisports-key': API_KEY }
         });
-        setFixtures(res.data.response || []);
+        setFixtures(res.data.response);
         setLoading(false);
       } catch (err) {
-        console.error("API Error:", err);
         setLoading(false);
       }
     };
@@ -77,7 +70,7 @@ export default function GoalPro() {
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
         } catch (e) {
-          console.error("AdSense Error:", e);
+          console.error("AdSense push error:", e);
         }
       }, 150);
       return () => clearTimeout(timeout);
@@ -103,7 +96,7 @@ export default function GoalPro() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-      <p className="text-blue-500 font-black animate-pulse uppercase tracking-widest text-center">Loading Live Matches...</p>
+      <p className="text-blue-500 font-black animate-pulse uppercase tracking-widest text-center">Generating IQ Analysis...</p>
     </div>
   );
 
@@ -125,7 +118,7 @@ export default function GoalPro() {
         </div>
         <input 
           type="text"
-          placeholder="Search Teams or Leagues..."
+          placeholder="Search Live Fixtures..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -135,79 +128,107 @@ export default function GoalPro() {
       <AdSlot /> 
 
       <div className="space-y-8">
-        {filteredFixtures.length === 0 ? (
-          <p className="text-center text-slate-500 uppercase text-[10px] font-bold tracking-widest py-20">No active matches found for today.</p>
-        ) : (
-          filteredFixtures.slice(0, 50).map((item, index) => {
-            const { homeProb, drawProb, awayProb } = getProbabilities(item);
-            const maxProb = Math.max(homeProb, drawProb, awayProb);
-            return (
-              <div key={item.fixture.id}>
-                {index % 6 === 0 && index !== 0 && <AdSlot />}
-                <div className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800/80 p-6 shadow-2xl">
-                  <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase tracking-widest">
-                    <span className="bg-slate-800/50 px-3 py-1 rounded-full">{item.league.name}</span>
-                    <span className="text-blue-400">{new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+        {filteredFixtures.slice(0, 50).map((item, index) => {
+          const { homeProb, drawProb, awayProb } = getProbabilities(item);
+          const maxProb = Math.max(homeProb, drawProb, awayProb);
+          const isHome = homeProb === maxProb;
+          const isAway = awayProb === maxProb;
+
+          return (
+            <div key={item.fixture.id}>
+              {index % 6 === 0 && index !== 0 && <AdSlot />}
+
+              <div className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800/80 p-6 shadow-2xl">
+                <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase tracking-widest">
+                  <span className="bg-slate-800/50 px-3 py-1 rounded-full">{item.league.name}</span>
+                  <span className="text-blue-400">Kickoff: {new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                </div>
+
+                <div className="flex justify-between items-center mb-10 px-2 font-black text-xl tracking-tight text-white uppercase">
+                  <span className="flex-1 text-center">{item.teams.home.name}</span>
+                  <span className="px-4 opacity-10 text-[10px] italic text-slate-500">VS</span>
+                  <span className="flex-1 text-center">{item.teams.away.name}</span>
+                </div>
+
+                <div className="mb-8">
+                  <div className="flex justify-between items-end mb-3 px-1 text-[10px] font-black uppercase tracking-tighter">
+                    <span className={isHome ? 'text-blue-400' : 'text-slate-500'}>Home {homeProb}%</span>
+                    <span className={!isHome && !isAway ? 'text-slate-300' : 'text-slate-500'}>Draw {drawProb}%</span>
+                    <span className={isAway ? 'text-emerald-400' : 'text-slate-500'}>Away {awayProb}%</span>
                   </div>
-                  <div className="flex justify-between items-center mb-10 px-2 font-black text-xl tracking-tight text-white uppercase">
-                    <span className="flex-1 text-center">{item.teams.home.name}</span>
-                    <span className="px-4 opacity-10 text-[10px] italic text-slate-500">VS</span>
-                    <span className="flex-1 text-center">{item.teams.away.name}</span>
+                  <div className="h-2.5 w-full flex rounded-full overflow-hidden bg-slate-800">
+                    <div style={{ width: `${homeProb}%` }} className="bg-blue-500"></div>
+                    <div style={{ width: `${drawProb}%` }} className="bg-slate-600"></div>
+                    <div style={{ width: `${awayProb}%` }} className="bg-emerald-500"></div>
                   </div>
-                  <div className="mb-8">
-                    <div className="flex justify-between items-end mb-3 px-1 text-[10px] font-black uppercase tracking-tighter">
-                      <span className={homeProb === maxProb ? 'text-blue-400' : 'text-slate-500'}>Home {homeProb}%</span>
-                      <span className={drawProb === maxProb ? 'text-slate-300' : 'text-slate-500'}>Draw {drawProb}%</span>
-                      <span className={awayProb === maxProb ? 'text-emerald-400' : 'text-slate-500'}>Away {awayProb}%</span>
-                    </div>
-                    <div className="h-2.5 w-full flex rounded-full overflow-hidden bg-slate-800">
-                      <div style={{ width: `${homeProb}%` }} className="bg-blue-500"></div>
-                      <div style={{ width: `${drawProb}%` }} className="bg-slate-600"></div>
-                      <div style={{ width: `${awayProb}%` }} className="bg-emerald-500"></div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 mb-2">
-                    <button onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)} className="w-full py-4 text-[9px] font-black text-white uppercase tracking-widest bg-blue-600/10 border border-blue-500/20 rounded-2xl cursor-pointer">
-                      {selectedMatch === item.fixture.id ? "Close Stats ▲" : "View Analysis ▼"}
-                    </button>
-                    <a href={BETWAY_AFFILIATE_URL} target="_blank" className="w-full py-4 text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center flex items-center justify-center">Betway</a>
-                  </div>
-                  {selectedMatch === item.fixture.id && (
-                    <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                      {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m) => (
-                        <div key={m} onClick={() => !isPaid && setShowPaymentModal(true)} className={`p-4 rounded-2xl border transition-all ${!isPaid ? 'bg-slate-900/30 border-slate-800/30 cursor-pointer' : 'bg-slate-900/80 border-blue-500/20'}`}>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-2">
+                  <button 
+                    onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)}
+                    className="w-full py-4 text-[9px] font-black text-white uppercase tracking-widest bg-blue-600/10 border border-blue-500/20 rounded-2xl cursor-pointer hover:bg-blue-600/20 transition-colors"
+                  >
+                    {selectedMatch === item.fixture.id ? "Close Stats ▲" : "View Full Analysis ▼"}
+                  </button>
+                  <a 
+                    href={BETWAY_AFFILIATE_URL} 
+                    target="_blank"
+                    className="w-full py-4 text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center flex items-center justify-center hover:bg-emerald-600/20 transition-colors"
+                  >
+                    Bet on Betway
+                  </a>
+                </div>
+
+                {selectedMatch === item.fixture.id && (
+                  <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {["BTTS", "Overs_Unders", "Total_Corners", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs"].map((m) => {
+                      const showData = isPaid; 
+                      return (
+                        <div 
+                          key={m} 
+                          onClick={() => !showData && setShowPaymentModal(true)}
+                          className={`p-4 rounded-2xl border transition-all ${!showData ? 'bg-slate-900/30 border-slate-800/30 cursor-pointer' : 'bg-slate-900/80 border-blue-500/20'}`}
+                        >
                           <p className="text-[8px] text-slate-300 font-black uppercase mb-1 tracking-widest">{m.replace('_', ' ')}</p>
                           <div className="flex justify-between items-center">
-                            <p className={`font-black text-sm ${!isPaid ? 'blur-md opacity-20 select-none' : 'text-blue-400'}`}>{isPaid ? getEliteMarket(item, m) : "LOCKED"}</p>
-                            {!isPaid && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">VIP</span>}
+                            <p className={`font-black text-sm ${!showData ? 'blur-md opacity-20 select-none' : 'text-blue-400'}`}>
+                              {showData ? getEliteMarket(item, m) : "LOCKED"}
+                            </p>
+                            {!showData && <span className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">VIP</span>}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )
-          })
-        )}
+            </div>
+          );
+        })}
       </div>
 
       <footer className="mt-16 pt-8 border-t border-slate-800 text-center pb-12 px-4">
         <div className="flex justify-center flex-wrap gap-x-6 gap-y-3 text-[10px] font-black text-blue-500 uppercase italic mb-8">
-          <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
-          <Link href="/terms" className="hover:text-white">Terms of Service</Link>
-          <Link href="/guide" className="hover:text-white">Betting Guide</Link>
-          <Link href="/contact" className="hover:text-white">Support</Link>
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+          <Link href="/guide" className="hover:text-white transition-colors">Betting Guide</Link>
+          <Link href="/contact" className="hover:text-white transition-colors">Support</Link>
         </div>
-        <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-tighter opacity-60">18+ | BeGambleAware | Responsible Gambling</p>
-        <p className="text-[8px] text-slate-700 font-medium uppercase tracking-[0.3em]">© 2026 GoalPro V2. All Rights Reserved.</p>
+        
+        <p className="text-[9px] text-slate-500 font-bold uppercase mb-4 tracking-tighter opacity-60">
+          18+ | BeGambleAware | Responsible Gambling
+        </p>
+        
+        <p className="text-[8px] text-slate-700 font-medium uppercase tracking-[0.3em]">
+          © 2026 GoalPro V2 Analysis. All Rights Reserved.
+        </p>
       </footer>
 
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/98 backdrop-blur-2xl flex items-center justify-center p-6 z-50">
           <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-w-sm text-center shadow-2xl">
             <h2 className="text-3xl font-black italic mb-2 tracking-tighter uppercase text-white">Unlock VIP</h2>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10">Instant Access to Elite Markets</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10">Get Full Markets & IQ Predictions</p>
             <div id="paypal-button-container" className="mb-6 min-h-[150px]">
               <Script 
                 src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`} 
@@ -224,7 +245,7 @@ export default function GoalPro() {
                 }}
               />
             </div>
-            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest hover:text-white">Close</button>
+            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">Close</button>
           </div>
         </div>
       )}
