@@ -56,7 +56,7 @@ export default function GoalPro() {
     return markets[market] || "N/A";
   };
 
-  const filteredFixtures = fixtures.filter(f => 
+  const filteredFixtures = fixtures.filter((f: any) => 
     f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     f.teams.away.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     f.league.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -73,7 +73,7 @@ export default function GoalPro() {
       <header className="sticky top-0 z-40 bg-[#020617]/80 backdrop-blur-md pt-4 pb-6 border-b border-slate-800 mb-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-black text-blue-500 italic">GOALPRO</h1>
-          <button onClick={() => setShowPaymentModal(true)} className="bg-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20">
+          <button onClick={() => setShowPaymentModal(true)} className="bg-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase">
             {isPaid ? "PRO ACTIVE" : "UPGRADE"}
           </button>
         </div>
@@ -90,7 +90,7 @@ export default function GoalPro() {
       </header>
 
       <div className="space-y-6">
-        {filteredFixtures.length > 0 ? filteredFixtures.slice(0, 100).map((item) => {
+        {filteredFixtures.length > 0 ? filteredFixtures.slice(0, 100).map((item: any) => {
           const { homeProb, drawProb, awayProb } = getProbabilities(item);
           const isHome = homeProb > drawProb && homeProb > awayProb;
           const isAway = awayProb > homeProb && awayProb > drawProb;
@@ -98,7 +98,7 @@ export default function GoalPro() {
           const isOpen = selectedMatch === item.fixture.id;
 
           return (
-            <div key={item.fixture.id} className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-6 shadow-2xl transition-all">
+            <div key={item.fixture.id} className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-6 shadow-2xl">
               <div className="flex justify-between text-[9px] font-bold text-slate-500 mb-6 uppercase tracking-widest">
                 <span>{item.league.name}</span>
                 <span className="text-blue-500">Kickoff: {new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
@@ -116,7 +116,7 @@ export default function GoalPro() {
                     <p className="text-[7px] text-slate-500 font-black uppercase mb-1">AI Prediction</p>
                     <p className={`text-sm font-black uppercase ${isHome ? 'text-blue-400' : (isAway ? 'text-emerald-400' : 'text-slate-300')}`}>
                       {isHome ? "Home Win" : (isAway ? "Away Win" : "Draw Result")}
-                      {maxProb > 65 && <span className="ml-2 text-[8px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 font-bold tracking-tighter">BANKER</span>}
+                      {maxProb > 65 && <span className="ml-2 text-[8px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 font-bold">BANKER</span>}
                     </p>
                   </div>
                   <span className="text-[10px] font-black text-slate-500">{maxProb}% Confidence</span>
@@ -135,6 +135,45 @@ export default function GoalPro() {
                 {isOpen ? "Close Stats ▲" : "View Full Analysis ▼"}
               </button>
 
-              {/* EXPANDABLE ANALYSIS SECTION */}
               {isOpen && (
-                <div className="mt
+                <div className="mt-6 pt-6 border-t border-slate-800/50 grid grid-cols-2 gap-3">
+                  {["BTTS", "Over 2.5", "Corners", "D. Chance"].map((market) => (
+                    <div key={market} className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800/50">
+                      <p className="text-[8px] text-slate-500 font-black uppercase mb-1">{market}</p>
+                      <div className="flex justify-between items-center">
+                        <p className={`font-black text-sm ${!isPaid ? 'blur-sm opacity-30 select-none' : 'text-blue-400'}`}>
+                          {!isPaid ? "Locked" : getEliteMarket(item, market)}
+                        </p>
+                        {!isPaid && <span className="text-[6px] bg-blue-600/20 text-blue-500 px-1.5 py-0.5 rounded font-black uppercase">VIP</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }) : (
+          <div className="text-center py-20 opacity-30">
+            <p className="font-black uppercase tracking-widest text-xs">No Matches Found</p>
+          </div>
+        )}
+      </div>
+
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 z-50">
+          <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-w-sm text-center shadow-2xl">
+            <h2 className="text-3xl font-black italic mb-2 uppercase text-white">Unlock VIP</h2>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10">Access all premium betting insights</p>
+            <button 
+              onClick={() => { setIsPaid(true); setShowPaymentModal(false); }}
+              className="w-full bg-blue-600 py-4 rounded-2xl font-black uppercase text-xs mb-4 shadow-lg shadow-blue-600/20"
+            >
+              Simulate Upgrade
+            </button>
+            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase tracking-widest">Close</button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
