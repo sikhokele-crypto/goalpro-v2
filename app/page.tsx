@@ -9,25 +9,22 @@ const PAYPAL_CLIENT_ID = 'AT-mbb_TV5_ftmtSk9AY3P7qTT8rewfzT3qsxw4gu_rNbGgLsCC8nn
 const PUB_ID = 'pub-4608500942276282';
 const BETWAY_AFFILIATE_URL = 'https://www.betway.co.za'; 
 
-// Popular League IDs (EPL, La Liga, UCL, Serie A, Bundesliga)
 const POPULAR_LEAGUES = [39, 140, 2, 135, 78];
 
 export default function GoalPro() {
-  const [fixtures, setFixtures] = useState([]);
+  const [fixtures, setFixtures] = useState<any[]>([]); // FIX 1: Explicitly type state
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false); 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
 
-  // --- REAL POISSON ENGINE ---
   const factorial = (n: number): number => (n <= 1 ? 1 : n * factorial(n - 1));
   const poisson = (expected: number, actual: number) => (Math.exp(-expected) * Math.pow(expected, actual)) / factorial(actual);
 
   const getPoissonPredictions = (item: any) => {
     const hId = item.teams.home.id;
     const aId = item.teams.away.id;
-    // Enhanced Lambda: Major leagues get slightly higher expected goals for excitement
     const isPopular = POPULAR_LEAGUES.includes(item.league.id);
     const homeLambda = ((hId % 10) / 4) + (isPopular ? 1.8 : 1.2);
     const awayLambda = ((aId % 10) / 5) + (isPopular ? 1.4 : 0.8);
@@ -72,12 +69,11 @@ export default function GoalPro() {
         
         const allMatches = res.data.response || [];
         
-        // SORTING LOGIC: Put Popular Leagues (EPL, etc.) at the very top
-        const sortedMatches = allMatches.sort((a, b) => {
+        const sortedMatches = allMatches.sort((a: any, b: any) => {
           const aPop = POPULAR_LEAGUES.includes(a.league.id) ? 1 : 0;
           const bPop = POPULAR_LEAGUES.includes(b.league.id) ? 1 : 0;
           return bPop - aPop;
-        }).filter(f => f.fixture.status.short !== 'FT');
+        }).filter((f: any) => f.fixture.status.short !== 'FT');
 
         setFixtures(sortedMatches);
       } catch (err) {
@@ -103,6 +99,7 @@ export default function GoalPro() {
     return markets[market] || "90% IQ";
   };
 
+  // FIX 2: Correct AdSlot placement and hydration check
   const AdSlot = () => {
     useEffect(() => {
       try { // @ts-ignore
@@ -117,30 +114,28 @@ export default function GoalPro() {
     );
   };
 
-  const filteredFixtures = fixtures.filter((f: any) => 
-    f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.league.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-32">
       <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} crossOrigin="anonymous" strategy="afterInteractive" />
 
       <header className="sticky top-0 z-40 bg-[#020617]/95 backdrop-blur-md pt-4 pb-6 border-b border-slate-800/50 mb-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 px-2">
           <h1 className="text-4xl font-black text-blue-500 italic tracking-tighter">GOALPRO</h1>
           <button onClick={() => !isPaid && setShowPaymentModal(true)} className={`${isPaid ? 'bg-emerald-600' : 'bg-blue-600'} px-5 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg`}>
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
-        <input type="text" placeholder="Search Premier League, La Liga..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-blue-500" />
+        <input type="text" placeholder="Search Premier League..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none" />
       </header>
 
       <div className="space-y-8">
         {loading ? (
            <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20 tracking-widest">Syncing Popular Fixtures...</p>
         ) : (
-          filteredFixtures.slice(0, 50).map((item: any, index: number) => {
+          fixtures.filter((f: any) => 
+            f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            f.league.name.toLowerCase().includes(searchTerm.toLowerCase())
+          ).slice(0, 50).map((item: any, index: number) => {
             const probs = getPoissonPredictions(item);
             const autoPick = getAutoPick(probs);
             const isPopular = POPULAR_LEAGUES.includes(item.league.id);
@@ -149,24 +144,21 @@ export default function GoalPro() {
               <div key={item.fixture.id}>
                 {index % 6 === 0 && <AdSlot />}
                 <div className={`bg-[#0f172a] rounded-[2.5rem] border ${isPopular ? 'border-blue-500/40 shadow-blue-500/5' : 'border-slate-800/80'} p-6 shadow-2xl relative overflow-hidden`}>
-                  
-                  {/* AUTO-PICK BADGE */}
                   <div className={`absolute top-0 right-10 ${isPopular ? 'bg-yellow-500' : 'bg-blue-600'} px-4 py-1.5 rounded-b-xl shadow-lg`}>
                     <p className={`text-[7px] font-black uppercase tracking-widest ${isPopular ? 'text-black' : 'text-white'}`}>Auto-Pick: {autoPick}</p>
                   </div>
 
-                  <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase tracking-tighter">
-                    <span className={`${isPopular ? 'text-blue-400' : ''}`}>{isPopular && "⭐ "}{item.league.name}</span>
+                  <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase">
+                    <span className={isPopular ? 'text-blue-400' : ''}>{isPopular && "⭐ "}{item.league.name}</span>
                     <span className="text-blue-400">{new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                   </div>
 
-                  <div className="flex justify-between items-center mb-10 px-2 font-black text-xl text-white uppercase tracking-tighter">
+                  <div className="flex justify-between items-center mb-10 px-2 font-black text-xl text-white uppercase">
                     <span className="flex-1 text-center">{item.teams.home.name}</span>
                     <span className="px-4 opacity-10 text-[10px] italic">VS</span>
                     <span className="flex-1 text-center">{item.teams.away.name}</span>
                   </div>
 
-                  {/* PROBABILITY BARS */}
                   <div className="mb-8">
                     <div className="flex justify-between mb-2 text-[9px] font-black uppercase text-slate-500 px-1">
                       <span className={probs.homeProb > 40 ? "text-blue-400" : ""}>H {probs.homeProb}%</span>
@@ -222,3 +214,11 @@ export default function GoalPro() {
                   }).render('#paypal-container');
                 }
               }} />
+            </div>
+            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase">Close</button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
