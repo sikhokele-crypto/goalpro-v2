@@ -17,6 +17,12 @@ export default function GoalPro() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
 
+  // Persistence for VIP status
+  useEffect(() => {
+    const status = localStorage.getItem('goalpro_vip');
+    if (status === 'true') setIsPaid(true);
+  }, []);
+
   const factorial = (n: number): number => (n <= 1 ? 1 : n * factorial(n - 1));
   const poisson = (expected: number, actual: number) =>
     (Math.exp(-expected) * Math.pow(expected, actual)) / factorial(actual);
@@ -57,21 +63,17 @@ export default function GoalPro() {
     return "DRAW / X";
   };
 
-  // ✅ THE SPORTS DB FETCH (FULLY COMPATIBLE)
   useEffect(() => {
     const fetchLiveData = async () => {
       try {
         setLoading(true);
-
         const today = new Date().toISOString().split('T')[0];
-
         const res = await axios.get(
           `https://www.thesportsdb.com/api/v1/json/${API_KEY}/eventsday.php`,
           { params: { d: today, s: "Soccer" } }
         );
 
         const events = res.data.events || [];
-
         const mapped = events.map((event: any) => ({
           fixture: {
             id: parseInt(event.idEvent),
@@ -101,7 +103,6 @@ export default function GoalPro() {
         setLoading(false);
       }
     };
-
     fetchLiveData();
   }, []);
 
@@ -116,7 +117,7 @@ export default function GoalPro() {
       "Home_Overs": `Over ${probs.homeLambda > 1.9 ? '1.5' : '0.5'}`,
       "Total_Corners": `Over ${(item.teams.home.id % 4) + 7.5}`,
     };
-    return markets[market] || "90% IQ";
+    return markets[market] || "N/A";
   };
 
   const AdSlot = () => {
@@ -128,7 +129,7 @@ export default function GoalPro() {
     }, []);
 
     return (
-      <div className="my-6 p-4 text-center border border-dashed border-slate-800 rounded-3xl">
+      <div className="my-6 p-4 text-center border border-dashed border-slate-800 rounded-3xl overflow-hidden">
         <ins
           className="adsbygoogle"
           style={{ display: 'block' }}
@@ -143,32 +144,33 @@ export default function GoalPro() {
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 max-w-xl mx-auto pb-32">
+      <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} crossorigin="anonymous" />
 
-      <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} />
-
-      <header className="sticky top-0 bg-[#020617]/95 pt-4 pb-6 mb-8">
-        <div className="flex justify-between mb-6">
+      <header className="sticky top-0 bg-[#020617]/95 pt-4 pb-6 mb-8 z-10">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-black text-blue-500 italic">GOALPRO</h1>
-
           <button
             onClick={() => !isPaid && setShowPaymentModal(true)}
-            className={`${isPaid ? 'bg-emerald-600' : 'bg-blue-600'} px-4 py-2 rounded-xl text-xs`}
+            className={`${isPaid ? 'bg-emerald-600' : 'bg-blue-600'} px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all active:scale-95`}
           >
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
 
         <input
-          placeholder="Search..."
+          placeholder="Search team or league..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 rounded-xl bg-[#0f172a]"
+          className="w-full p-4 rounded-2xl bg-[#0f172a] border border-slate-800 focus:outline-none focus:border-blue-500 text-sm"
         />
       </header>
 
       <div className="space-y-6">
         {loading ? (
-          <p className="text-center text-blue-400">Loading...</p>
+          <div className="flex flex-col items-center py-20 animate-pulse">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-blue-400 font-mono text-sm">ANALYZING FIXTURES...</p>
+          </div>
         ) : (
           fixtures
             .filter((f: any) =>
@@ -181,49 +183,60 @@ export default function GoalPro() {
 
               return (
                 <div key={item.fixture.id}>
+                  {i % 4 === 0 && i !== 0 && <AdSlot />}
 
-                  {i % 5 === 0 && i !== 0 && <AdSlot />}
-
-                  <div className="bg-[#0f172a] p-6 rounded-3xl">
-
-                    <div className="text-xs text-slate-400 mb-2">
-                      {item.league.name}
+                  <div className="bg-[#0f172a] p-6 rounded-[2.5rem] border border-slate-800/50 shadow-xl">
+                    <div className="flex justify-between items-center mb-4">
+                        <span className="text-[10px] bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">
+                            {item.league.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500">Live IQ Engine</span>
                     </div>
 
-                    <div className="text-center font-bold mb-4">
-                      {item.teams.home.name} vs {item.teams.away.name}
+                    <div className="grid grid-cols-3 items-center text-center gap-2 mb-6">
+                        <div className="text-sm font-bold">{item.teams.home.name}</div>
+                        <div className="text-xs text-slate-500 font-mono italic">VS</div>
+                        <div className="text-sm font-bold">{item.teams.away.name}</div>
                     </div>
 
-                    <div className="text-center text-blue-400 text-xs mb-4">
-                      Auto Pick: {autoPick}
+                    <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-4 mb-4 flex justify-between items-center">
+                        <div className="text-[10px] font-bold text-blue-400">PRO PICK</div>
+                        <div className="text-sm font-black text-white">{autoPick}</div>
                     </div>
 
                     <button
                       onClick={() =>
                         setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)
                       }
-                      className="w-full bg-blue-600/20 p-2 rounded-xl text-xs"
+                      className="w-full bg-slate-800/50 hover:bg-slate-800 p-3 rounded-xl text-[10px] font-bold transition-colors"
                     >
-                      Toggle Markets
+                      {selectedMatch === item.fixture.id ? "HIDE MARKETS" : "VIEW ELITE MARKETS"}
                     </button>
 
                     {selectedMatch === item.fixture.id && (
-                      <div className="grid grid-cols-2 gap-2 mt-3">
-                        {["BTTS","Overs_Unders","Double_Chance","Handicap"].map(m => (
+                      <div className="grid grid-cols-2 gap-2 mt-4 animate-in fade-in slide-in-from-top-2">
+                        {["BTTS","Overs_Unders","Double_Chance","Handicap","Clean_Sheet","First_Half","Home_Overs","Total_Corners"].map(m => (
                           <div
                             key={m}
                             onClick={() => !isPaid && setShowPaymentModal(true)}
-                            className="p-3 bg-black/20 rounded-xl"
+                            className="p-3 bg-black/40 rounded-2xl border border-slate-800/50 cursor-pointer hover:border-blue-500/30"
                           >
-                            <p className="text-[10px]">{m}</p>
-                            <p className={!isPaid ? "blur-sm" : "text-blue-400"}>
+                            <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">{m.replace('_', ' ')}</p>
+                            <p className={`text-xs font-bold ${!isPaid ? "blur-sm" : "text-blue-400"}`}>
                               {isPaid ? getEliteMarket(item, m, probs) : "LOCKED"}
                             </p>
                           </div>
                         ))}
                       </div>
                     )}
-
+                    
+                    <a 
+                        href={BETWAY_AFFILIATE_URL}
+                        target="_blank"
+                        className="block text-center mt-4 text-[9px] text-slate-600 underline"
+                    >
+                        Bet on this match at Betway →
+                    </a>
                   </div>
                 </div>
               );
@@ -231,33 +244,52 @@ export default function GoalPro() {
         )}
       </div>
 
+      {/* FOOTER NAV */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-blue-600 p-4 rounded-3xl flex justify-around items-center shadow-2xl z-50">
+        <button className="text-white font-black text-xs">FIXTURES</button>
+        <div className="h-4 w-px bg-white/20"></div>
+        <button onClick={() => setShowPaymentModal(true)} className="text-white/70 font-black text-xs">VIP TIPS</button>
+        <div className="h-4 w-px bg-white/20"></div>
+        <Link href={BETWAY_AFFILIATE_URL} className="text-white/70 font-black text-xs underline">BETWAY</Link>
+      </nav>
+
       {/* PAYPAL MODAL */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black flex items-center justify-center">
-          <div className="bg-[#0f172a] p-6 rounded-3xl text-center">
-            <h2 className="text-xl mb-4">Unlock VIP</h2>
+        <div className="fixed inset-0 bg-black/95 flex items-center justify-center p-6 z-[100] backdrop-blur-sm">
+          <div className="bg-[#0f172a] p-8 rounded-[3rem] text-center border border-blue-500/30 max-w-sm w-full">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🏆</span>
+            </div>
+            <h2 className="text-2xl font-black mb-2 text-white">ELITE ACCESS</h2>
+            <p className="text-slate-400 text-xs mb-8">Unlock 8+ extra markets per match, including Corners, BTTS, and Handicaps.</p>
+
+            <div id="paypal" className="mb-6" />
 
             <Script
               src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}`}
               onLoad={() => {
                 // @ts-ignore
-                window.paypal?.Buttons({
-                  createOrder: (data, actions) =>
-                    actions.order.create({
-                      purchase_units: [{ amount: { value: "1.00" } }]
-                    }),
-                  onApprove: (data, actions) =>
-                    actions.order.capture().then(() => {
-                      setIsPaid(true);
-                      setShowPaymentModal(false);
-                    })
-                }).render('#paypal');
+                if (window.paypal && !document.getElementById('paypal').hasChildNodes()) {
+                    // @ts-ignore
+                    window.paypal.Buttons({
+                        style: { shape: 'pill', color: 'blue', label: 'pay' },
+                        createOrder: (data, actions) => actions.order.create({ purchase_units: [{ amount: { value: "1.00" } }] }),
+                        onApprove: (data, actions) => actions.order.capture().then(() => {
+                            setIsPaid(true);
+                            localStorage.setItem('goalpro_vip', 'true');
+                            setShowPaymentModal(false);
+                        })
+                    }).render('#paypal');
+                }
               }}
             />
 
-            <div id="paypal" />
-
-            <button onClick={() => setShowPaymentModal(false)}>Close</button>
+            <button 
+                onClick={() => setShowPaymentModal(false)}
+                className="text-slate-500 text-[10px] font-bold uppercase tracking-widest"
+            >
+                Maybe Later
+            </button>
           </div>
         </div>
       )}
