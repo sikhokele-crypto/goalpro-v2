@@ -13,136 +13,168 @@ export default function GoalPro() {
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false); 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
 
-  useEffect(() => { setHasMounted(true); }, []);
+  // RESTORED: Poisson Math Engine
+  const factorial = (n: number): number => (n <= 1 ? 1 : n * factorial(n - 1));
+  const poisson = (expected: number, actual: number) => (Math.exp(-expected) * Math.pow(expected, actual)) / factorial(actual);
 
-  // Simplified Prediction Logic to keep it fast
-  const getPredictions = (hId: any, aId: any) => {
-    const home = parseInt(hId) || 1;
-    const away = parseInt(aId) || 2;
-    const hProb = Math.floor(((home % 15) + 35));
-    const aProb = Math.floor(((away % 15) + 30));
-    const dProb = 100 - (hProb + aProb);
-    return { h: hProb, d: dProb, a: aProb };
+  const getPoissonPredictions = (hId: any, aId: any) => {
+    const homeLambda = ((parseInt(hId) % 10) / 4) + 1.2;
+    const awayLambda = ((parseInt(aId) % 10) / 5) + 0.8;
+
+    let hWin = 0, draw = 0, aWin = 0;
+    for (let h = 0; h < 6; h++) {
+      for (let a = 0; a < 6; a++) {
+        const prob = poisson(homeLambda, h) * poisson(awayLambda, a);
+        if (h > a) hWin += prob;
+        else if (h === a) draw += prob;
+        else aWin += prob;
+      }
+    }
+    const total = hWin + draw + aWin;
+    return {
+      homeProb: Math.floor((hWin / total) * 100),
+      drawProb: Math.floor((draw / total) * 100),
+      awayProb: Math.floor((aWin / total) * 100),
+      homeLambda, awayLambda
+    };
   };
 
-  // --- REPLACEMENT FETCHING LOGIC ---
+  // RESTORED: Auto-Pick logic
+  const getAutoPick = (probs: any) => {
+    if (probs.homeProb > 48) return "HOME WIN";
+    if (probs.awayProb > 48) return "AWAY WIN";
+    if (probs.drawProb > 32) return "X (DRAW)";
+    return "OV 1.5 GOALS";
+  };
+
+  // RESTORED: Elite Market Predictions
+  const getEliteMarket = (m: string, probs: any) => {
+    const markets: any = {
+      "BTTS": (probs.homeLambda > 1.6 && probs.awayLambda > 1.3) ? "Yes" : "No",
+      "Overs_Unders": (probs.homeLambda + probs.awayLambda > 2.6) ? "Over 2.5" : "Under 2.5",
+      "Double_Chance": probs.homeProb > probs.awayProb ? "1X" : "X2",
+      "Handicap": probs.homeProb > 55 ? "-1.0" : "+1.5",
+      "Clean_Sheet": probs.awayLambda < 1.1 ? "Home Yes" : "No",
+      "First_Half": probs.homeProb > 42 ? "Home" : "Draw"
+    };
+    return markets[m] || "PRO IQ";
+  };
+
   const fetchMatches = useCallback(async () => {
     setLoading(true);
     try {
-      // Using the Public '3' key which allows free soccer data access
       const res = await axios.get(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?s=Soccer`);
-      
-      if (res.data && res.data.events) {
-        const mapped = res.data.events.map((m: any) => ({
+      if (res.data?.events) {
+        setFixtures(res.data.events.map((m: any) => ({
           id: m.idEvent,
           league: m.strLeague,
           home: m.strHomeTeam,
           away: m.strAwayTeam,
-          homeId: m.idHomeTeam,
-          awayId: m.idAwayTeam,
+          hId: m.idHomeTeam,
+          aId: m.idAwayTeam,
           time: m.strTime ? m.strTime.substring(0, 5) : "LIVE"
-        }));
-        setFixtures(mapped);
-      } else {
-        // Fallback: If there are NO live games today, we show tomorrow's schedule
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const nextDay = tomorrow.toISOString().split('T')[0];
-        const resNext = await axios.get(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${nextDay}&s=Soccer`);
-        
-        if (resNext.data && resNext.data.events) {
-           const mappedNext = resNext.data.events.map((m: any) => ({
-            id: m.idEvent,
-            league: m.strLeague,
-            home: m.strHomeTeam,
-            away: m.strAwayTeam,
-            homeId: m.idHomeTeam,
-            awayId: m.idAwayTeam,
-            time: m.strTime ? m.strTime.substring(0, 5) : "TMW"
-          }));
-          setFixtures(mappedNext);
-        } else {
-          setFixtures([]);
-        }
+        })));
       }
-    } catch (e) {
-      console.error("Connection failed");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (hasMounted) fetchMatches();
-  }, [hasMounted, fetchMatches]);
-
-  if (!hasMounted) return null;
+  useEffect(() => { fetchMatches(); }, [fetchMatches]);
 
   return (
-    <main className="min-h-screen bg-[#020617] text-slate-100 p-4 max-w-xl mx-auto pb-32">
-      <header className="pt-4 pb-6 border-b border-slate-800/50 mb-8">
+    <main className="min-h-screen bg-[#020617] text-slate-100 p-4 max-w-xl mx-auto pb-32 font-sans">
+      <header className="sticky top-0 z-40 bg-[#020617]/95 backdrop-blur-md pt-4 pb-6 border-b border-slate-800/50 mb-8">
         <div className="flex justify-between items-center mb-6 px-2">
           <h1 className="text-4xl font-black text-blue-500 italic tracking-tighter">GOALPRO</h1>
-          <button onClick={() => setShowPaymentModal(true)} className="bg-blue-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg">
+          <button onClick={() => !isPaid && setShowPaymentModal(true)} className={`${isPaid ? 'bg-emerald-600' : 'bg-blue-600'} px-5 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg`}>
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
-        <input 
-          type="text" 
-          placeholder="Search team..." 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-          className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none" 
-        />
+        <input type="text" placeholder="Search team..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none" />
       </header>
 
       <div className="space-y-8">
         {loading ? (
-          <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20 tracking-widest">Scanning Global Fixtures...</p>
+          <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20 tracking-widest">Syncing Global Data...</p>
         ) : fixtures.length === 0 ? (
-          <div className="text-center py-20 opacity-40">
-            <p className="font-bold">No fixtures found for today.</p>
-          </div>
+          <p className="text-center text-slate-500 py-20 font-bold">No active matches found for today.</p>
         ) : (
           fixtures.filter(f => f.home.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => {
-            const p = getPredictions(item.homeId, item.awayId);
+            const probs = getPoissonPredictions(item.hId, item.aId);
+            const autoPick = getAutoPick(probs);
+
             return (
-              <div key={item.id} className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800/80 p-6 shadow-2xl relative overflow-hidden">
-                <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase tracking-wider">
+              <div key={item.id} className="bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-6 shadow-2xl relative overflow-hidden">
+                {/* RESTORED: Auto-Pick Label */}
+                <div className="absolute top-0 right-10 bg-blue-600 px-4 py-1.5 rounded-b-xl shadow-lg">
+                  <p className="text-[7px] font-black uppercase tracking-widest text-white">Auto-Pick: {autoPick}</p>
+                </div>
+
+                <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase">
                   <span className="text-blue-400">{item.league}</span>
                   <span className="text-blue-400">{item.time}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center mb-10 px-2 font-black text-xl text-white uppercase">
                   <span className="flex-1 text-center">{item.home}</span>
                   <span className="px-4 opacity-10 text-[10px] italic">VS</span>
                   <span className="flex-1 text-center">{item.away}</span>
                 </div>
 
+                {/* RESTORED: Probability Bar */}
                 <div className="mb-8">
                   <div className="flex justify-between mb-2 text-[9px] font-black uppercase text-slate-500 px-1">
-                    <span>H {p.h}%</span>
-                    <span>D {p.d}%</span>
-                    <span>A {p.a}%</span>
+                    <span className={probs.homeProb > 40 ? "text-blue-400" : ""}>H {probs.homeProb}%</span>
+                    <span>D {probs.drawProb}%</span>
+                    <span className={probs.awayProb > 40 ? "text-emerald-400" : ""}>A {probs.awayProb}%</span>
                   </div>
                   <div className="h-1.5 w-full flex rounded-full overflow-hidden bg-slate-800">
-                    <div style={{ width: `${p.h}%` }} className="bg-blue-500" />
-                    <div style={{ width: `${p.d}%` }} className="bg-slate-600" />
-                    <div style={{ width: `${p.a}%` }} className="bg-emerald-500" />
+                    <div style={{ width: `${probs.homeProb}%` }} className="bg-blue-500" />
+                    <div style={{ width: `${probs.drawProb}%` }} className="bg-slate-600" />
+                    <div style={{ width: `${probs.awayProb}%` }} className="bg-emerald-500" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="py-4 text-[9px] font-black text-white uppercase bg-blue-600/10 border border-blue-500/20 rounded-2xl">Prediction</button>
+                  <button onClick={() => setSelectedMatch(selectedMatch === item.id ? null : item.id)} className="py-4 text-[9px] font-black text-white uppercase bg-blue-600/10 border border-blue-500/20 rounded-2xl">
+                    {selectedMatch === item.id ? "Hide Markets ▲" : "Elite Predictions ▼"}
+                  </button>
                   <a href={BETWAY_AFFILIATE_URL} className="py-4 text-[9px] font-black text-emerald-400 uppercase bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center flex items-center justify-center">Betway</a>
                 </div>
+
+                {/* RESTORED: Elite Markets with VIP Blur */}
+                {selectedMatch === item.id && (
+                  <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3">
+                    {["BTTS", "Overs_Unders", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half"].map((m) => (
+                      <div key={m} onClick={() => !isPaid && setShowPaymentModal(true)} className="p-4 rounded-2xl border border-slate-800 bg-black/20 cursor-pointer">
+                        <p className="text-[8px] text-slate-500 font-black uppercase mb-1">{m.replace('_', ' ')}</p>
+                        <div className="flex justify-between items-center">
+                          <p className={`font-black text-xs ${!isPaid ? 'blur-md opacity-20' : 'text-blue-400'}`}>{isPaid ? getEliteMarket(m, probs) : "LOCKED"}</p>
+                          {!isPaid && <span className="text-[6px] bg-blue-600 px-2 py-0.5 rounded-full font-black text-white">VIP</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })
         )}
       </div>
+
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/98 backdrop-blur-2xl flex items-center justify-center p-6 z-50">
+          <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-w-sm text-center">
+            <h2 className="text-3xl font-black italic mb-2 uppercase text-white">Unlock VIP</h2>
+            <div id="paypal-container" className="my-8 min-h-[150px]">
+              <p className="text-slate-400 text-xs">PayPal Loading...</p>
+            </div>
+            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase">Close</button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
