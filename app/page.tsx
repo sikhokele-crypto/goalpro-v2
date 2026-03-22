@@ -18,17 +18,19 @@ export default function GoalPro() {
     const fetchMatches = async () => {
       try {
         setLoading(true);
-        // Using global soccer feed to ensure multiple games appear instead of just one
+        // Fetches global soccer feed to ensure multiple active games are available
         const response = await axios.get('https://www.thesportsdb.com/api/v1/json/3/latestsoccer.php');
+        
+        // Safety check to prevent the Client-side exception crash
         if (response.data && response.data.teams) {
           setFixtures(response.data.teams);
         } else {
-          // Fallback to Premier League if global feed is empty
+          // Fallback to Premier League if the global live feed is temporarily empty
           const fallback = await axios.get('https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=4328');
           setFixtures(fallback.data.events || []);
         }
       } catch (err) {
-        console.error("Connection issue");
+        console.error("Connection error");
       } finally {
         setLoading(false);
       }
@@ -103,7 +105,7 @@ export default function GoalPro() {
 
               {/* FIXED GRID: PREVENTS MARKETS FROM "SHORTING" */}
               {selectedMatch === (item.idEvent || idx) && (
-                <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-3 animate-in fade-in zoom-in-95">
+                <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-3">
                    {['BTTS IQ', 'OVER 2.5', '1X2 SAFE', 'CORNERS'].map(market => (
                      <div key={market} onClick={() => !isPaid && setShowPaymentModal(true)} className="p-5 bg-black/40 rounded-2xl border border-white/5 cursor-pointer hover:border-blue-500/30 transition-all">
                         <p className="text-[8px] text-slate-500 font-black mb-1 uppercase tracking-tighter">{market}</p>
