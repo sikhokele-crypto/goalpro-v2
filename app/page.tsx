@@ -12,15 +12,15 @@ const BETWAY_AFFILIATE_URL = 'https://www.betway.co.za';
 const POPULAR_LEAGUES = [39, 140, 2, 135, 78];
 
 export default function GoalPro() {
-  const [hasMounted, setHasMounted] = useState(false); // THE FIX: Prevents hydration errors
-  const [fixtures, setFixtures] = useState<any[]>([]); 
+  const [fixtures, setFixtures] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false); 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
 
-  useEffect(() => { setHasMounted(true); }, []); // Sets mount status
+  useEffect(() => { setHasMounted(true); }, []);
 
   const factorial = (n: number): number => (n <= 1 ? 1 : n * factorial(n - 1));
   const poisson = (expected: number, actual: number) => (Math.exp(-expected) * Math.pow(expected, actual)) / factorial(actual);
@@ -58,13 +58,12 @@ export default function GoalPro() {
   };
 
   useEffect(() => {
-    if (!hasMounted) return; // Wait for mount
+    if (!hasMounted) return;
     const fetchLiveData = async () => {
       try {
         setLoading(true);
-        const now = new Date();
-        if (now.getHours() >= 22) now.setDate(now.getDate() + 1);
-        const targetDate = now.toISOString().split('T')[0];
+        // FIXED DATE LOGIC: Ensures targetDate is always valid for the API
+        const targetDate = new Date(Date.now() + (new Date().getHours() >= 22 ? 86400000 : 0)).toISOString().split('T')[0];
         
         const res = await axios.get('https://v3.football.api-sports.io/fixtures', {
           params: { date: targetDate },
@@ -72,7 +71,6 @@ export default function GoalPro() {
         });
         
         const allMatches = res.data.response || [];
-        
         const sortedMatches = allMatches.sort((a: any, b: any) => {
           const aPop = POPULAR_LEAGUES.includes(a.league.id) ? 1 : 0;
           const bPop = POPULAR_LEAGUES.includes(b.league.id) ? 1 : 0;
@@ -81,7 +79,7 @@ export default function GoalPro() {
 
         setFixtures(sortedMatches);
       } catch (err) {
-        console.error(err);
+        console.error("API Error:", err);
       } finally {
         setLoading(false);
       }
@@ -117,7 +115,7 @@ export default function GoalPro() {
     );
   };
 
-  if (!hasMounted) return null; // Wait for browser to take over
+  if (!hasMounted) return null;
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-32">
@@ -136,6 +134,8 @@ export default function GoalPro() {
       <div className="space-y-8">
         {loading ? (
            <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20 tracking-widest">Syncing Popular Fixtures...</p>
+        ) : fixtures.length === 0 ? (
+           <p className="text-center text-slate-500 font-bold py-20">No active matches found for today.</p>
         ) : (
           fixtures.filter((f: any) => 
             f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
