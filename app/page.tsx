@@ -1,20 +1,27 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Script from "next/script";
 
 const API_KEY = "a14dbd219f66d6191e6df8757a94771c";
-const PUB_ID = "pub-4608500942276282";
+
+const MARKETS = [
+  "1X2",
+  "BTTS",
+  "Overs_Unders",
+  "Double_Chance",
+  "Total_Corners",
+  "Bookings",
+];
 
 export default function GoalPro() {
   const [fixtures, setFixtures] = useState<any[]>([]);
-  const [predictions, setPredictions] = useState<any>({});
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPaid, setIsPaid] = useState(false);
 
-  // ================= FETCH FIXTURES =================
+  // ================= FETCH =================
   useEffect(() => {
-    const fetchFixtures = async () => {
+    const fetchData = async () => {
       try {
         const date = new Date().toISOString().split("T")[0];
 
@@ -26,135 +33,162 @@ export default function GoalPro() {
           }
         );
 
-        const data = res.data.response || [];
-        setFixtures(data.slice(0, 10)); // limit for safety
+        setFixtures((res.data.response || []).slice(0, 20));
       } catch (e) {
-        console.log("Fixture fetch error");
+        console.log("error");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFixtures();
+    fetchData();
   }, []);
 
-  // ================= SIMPLE SAFE PREDICTION =================
+  // ================= SAFE PREDICTIONS =================
   const getPrediction = (item: any) => {
-    try {
-      const h = item.teams.home.id % 100;
-      const a = item.teams.away.id % 100;
+    const h = item.teams.home.id % 50;
+    const a = item.teams.away.id % 50;
 
-      const homeProb = Math.min(70, 40 + (h % 30));
-      const awayProb = Math.min(70, 40 + (a % 30));
-      const drawProb = 100 - (homeProb + awayProb > 90 ? 90 : homeProb + awayProb);
+    const homeProb = 40 + (h % 30);
+    const awayProb = 40 + (a % 30);
+    const drawProb = 100 - (homeProb + awayProb > 90 ? 90 : homeProb + awayProb);
 
-      return { homeProb, drawProb, awayProb };
-    } catch {
-      return { homeProb: 33, drawProb: 34, awayProb: 33 };
+    return { homeProb, drawProb, awayProb };
+  };
+
+  const getMarket = (item: any, market: string) => {
+    const p = getPrediction(item);
+
+    switch (market) {
+      case "1X2":
+        return `H:${p.homeProb}% D:${p.drawProb}% A:${p.awayProb}%`;
+      case "BTTS":
+        return p.homeProb > 45 && p.awayProb > 40 ? "YES" : "NO";
+      case "Overs_Unders":
+        return p.homeProb + p.awayProb > 75 ? "OVER 2.5" : "UNDER 2.5";
+      case "Double_Chance":
+        return p.homeProb > p.awayProb ? "1X" : "X2";
+      case "Total_Corners":
+        return p.homeProb + p.awayProb > 70 ? "OVER 8.5" : "UNDER 8.5";
+      case "Bookings":
+        return p.homeProb + p.awayProb > 65 ? "OVER 3.5" : "UNDER 3.5";
+      default:
+        return "--";
     }
   };
 
-  // ================= CONFIDENCE =================
-  const getConfidence = (p: number) => {
-    if (p > 65) return ["HIGH", "text-green-400"];
-    if (p > 50) return ["MEDIUM", "text-yellow-400"];
-    return ["LOW", "text-red-400"];
-  };
-
-  // ================= BEST PICK =================
-  const getBestPick = (p: any) => {
-    if (!p) return "Analyzing...";
-    if (p.homeProb > p.awayProb && p.homeProb > 55) return "HOME WIN";
-    if (p.awayProb > p.homeProb && p.awayProb > 55) return "AWAY WIN";
-    return "DRAW / SKIP";
-  };
-
   return (
-    <main className="min-h-screen bg-[#020617] text-white p-4">
+    <main className="min-h-screen bg-[#020617] text-white p-4 max-w-xl mx-auto">
 
-      {/* ADS SCRIPT SAFE */}
-      <Script
-        async
-        strategy="afterInteractive"
-        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`}
-        crossOrigin="anonymous"
-      />
+      {/* HEADER */}
+      <header className="sticky top-0 bg-[#020617] pb-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-black text-blue-500 italic">
+            GOALPRO
+          </h1>
 
-      <h1 className="text-3xl font-black mb-6 text-blue-500">
-        GOALPRO
-      </h1>
+          <button
+            onClick={() => setIsPaid(true)}
+            className="bg-blue-600 px-4 py-2 rounded-xl text-xs font-bold"
+          >
+            {isPaid ? "VIP ACTIVE" : "UPGRADE"}
+          </button>
+        </div>
 
-      {/* LOADING */}
-      {loading && (
+        <input
+          placeholder="Search Live Fixtures..."
+          className="w-full bg-[#0f172a] p-3 rounded-xl text-sm"
+        />
+      </header>
+
+      {/* CONTENT */}
+      {loading ? (
         <p className="text-center mt-20 animate-pulse">
-          Loading matches...
+          Loading Matches...
         </p>
-      )}
-
-      {/* EMPTY STATE */}
-      {!loading && fixtures.length === 0 && (
+      ) : fixtures.length === 0 ? (
         <p className="text-center mt-20 text-slate-400">
-          No matches available.
+          No matches found.
         </p>
-      )}
-
-      {/* MATCHES */}
-      {fixtures.map((item, i) => {
-        const pred = getPrediction(item);
-        const conf = getConfidence(
-          Math.max(pred.homeProb, pred.awayProb)
-        );
-
-        return (
+      ) : (
+        fixtures.map((item) => (
           <div
             key={item.fixture.id}
-            className="bg-[#0f172a] p-4 rounded-xl mb-6"
+            className="bg-[#0f172a] p-6 rounded-[2rem] mb-6"
           >
-            <h2 className="font-bold text-lg mb-2">
-              {item.teams.home.name} vs {item.teams.away.name}
-            </h2>
+            {/* LEAGUE */}
+            <div className="flex justify-between text-xs mb-4 text-slate-400">
+              <span>{item.league.name}</span>
+              <span>
+                {new Date(item.fixture.date).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
 
-            <button
-              className="bg-blue-600 px-3 py-1 rounded text-xs"
-              onClick={() =>
-                setSelectedMatch(
-                  selectedMatch === item.fixture.id
-                    ? null
-                    : item.fixture.id
-                )
-              }
-            >
-              View Analysis
-            </button>
+            {/* TEAMS */}
+            <div className="flex justify-between text-lg font-bold mb-6 uppercase">
+              <span>{item.teams.home.name}</span>
+              <span className="opacity-40">VS</span>
+              <span>{item.teams.away.name}</span>
+            </div>
 
-            {/* EXPANDED */}
+            {/* BUTTONS */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button
+                onClick={() =>
+                  setSelectedMatch(
+                    selectedMatch === item.fixture.id
+                      ? null
+                      : item.fixture.id
+                  )
+                }
+                className="bg-blue-600/20 border border-blue-500/30 py-3 rounded-xl text-xs"
+              >
+                {selectedMatch === item.fixture.id
+                  ? "Close Stats ▲"
+                  : "View Analysis ▼"}
+              </button>
+
+              <button className="bg-emerald-600/20 border border-emerald-500/30 py-3 rounded-xl text-xs text-emerald-400">
+                Betway
+              </button>
+            </div>
+
+            {/* MARKETS */}
             {selectedMatch === item.fixture.id && (
-              <div className="mt-4 text-sm space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                {MARKETS.map((m) => (
+                  <div
+                    key={m}
+                    className="p-4 bg-[#020617] rounded-xl relative"
+                    onClick={() => !isPaid && setIsPaid(false)}
+                  >
+                    <p className="text-[10px] text-slate-400 mb-1 uppercase">
+                      {m.replace("_", " ")}
+                    </p>
 
-                <p>
-                  1X2 → H:{pred.homeProb}% D:{pred.drawProb}% A:{pred.awayProb}%
-                </p>
+                    <p
+                      className={`font-bold ${
+                        isPaid ? "text-blue-400" : "blur-sm opacity-30"
+                      }`}
+                    >
+                      {isPaid ? getMarket(item, m) : "LOCKED"}
+                    </p>
 
-                <p className={conf[1]}>
-                  Confidence: {conf[0]}
-                </p>
-
-                <p className="text-blue-400">
-                  Best Bet: {getBestPick(pred)}
-                </p>
-
-              </div>
-            )}
-
-            {/* SAFE AD (won’t crash) */}
-            {i % 3 === 0 && (
-              <div className="mt-4 text-center text-xs text-slate-500">
-                Ad space
+                    {!isPaid && (
+                      <span className="absolute top-2 right-2 text-[8px] bg-blue-600 px-2 py-1 rounded-full">
+                        VIP
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        );
-      })}
+        ))
+      )}
     </main>
   );
 }
