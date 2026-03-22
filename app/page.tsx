@@ -12,12 +12,15 @@ const BETWAY_AFFILIATE_URL = 'https://www.betway.co.za';
 const POPULAR_LEAGUES = [39, 140, 2, 135, 78];
 
 export default function GoalPro() {
-  const [fixtures, setFixtures] = useState<any[]>([]); // FIX 1: Explicitly type state
+  const [hasMounted, setHasMounted] = useState(false); // THE FIX: Prevents hydration errors
+  const [fixtures, setFixtures] = useState<any[]>([]); 
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false); 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
+
+  useEffect(() => { setHasMounted(true); }, []); // Sets mount status
 
   const factorial = (n: number): number => (n <= 1 ? 1 : n * factorial(n - 1));
   const poisson = (expected: number, actual: number) => (Math.exp(-expected) * Math.pow(expected, actual)) / factorial(actual);
@@ -55,6 +58,7 @@ export default function GoalPro() {
   };
 
   useEffect(() => {
+    if (!hasMounted) return; // Wait for mount
     const fetchLiveData = async () => {
       try {
         setLoading(true);
@@ -83,7 +87,7 @@ export default function GoalPro() {
       }
     };
     fetchLiveData();
-  }, []);
+  }, [hasMounted]);
 
   const getEliteMarket = (item: any, market: string, probs: any) => {
     const markets: any = {
@@ -99,7 +103,6 @@ export default function GoalPro() {
     return markets[market] || "90% IQ";
   };
 
-  // FIX 2: Correct AdSlot placement and hydration check
   const AdSlot = () => {
     useEffect(() => {
       try { // @ts-ignore
@@ -113,6 +116,8 @@ export default function GoalPro() {
       </div>
     );
   };
+
+  if (!hasMounted) return null; // Wait for browser to take over
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-32">
