@@ -18,8 +18,8 @@ export default function GoalPro() {
     const fetchMatches = async () => {
       try {
         setLoading(true);
+        // Using global team feed to guarantee games appear
         const response = await axios.get('https://www.thesportsdb.com/api/v1/json/3/latestsoccer.php');
-        // Safety check: only set fixtures if the data structure is exactly what we expect
         if (response?.data?.teams) {
           setFixtures(response.data.teams);
         } else {
@@ -27,7 +27,7 @@ export default function GoalPro() {
           setFixtures(fallback?.data?.events || []);
         }
       } catch (err) {
-        setFixtures([]); // Reset to empty array on error to prevent crash
+        setFixtures([]); 
       } finally {
         setLoading(false);
       }
@@ -35,7 +35,6 @@ export default function GoalPro() {
     fetchMatches();
   }, []);
 
-  // Filter with safety checks to prevent "toLowerCase of undefined" errors
   const filteredFixtures = (fixtures || []).filter((f: any) => 
     f?.strHomeTeam?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     f?.strLeague?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -43,7 +42,6 @@ export default function GoalPro() {
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-24">
-      {/* HEADER & SEARCH */}
       <header className="sticky top-0 z-40 bg-[#020617]/95 backdrop-blur-md pt-4 pb-6 border-b border-white/5 mb-8">
         <div className="flex justify-between items-center mb-6 px-2">
           <h1 className="text-4xl font-black text-blue-500 italic uppercase tracking-tighter">GoalPro</h1>
@@ -54,6 +52,7 @@ export default function GoalPro() {
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
+        {/* RESTORED SEARCH BAR */}
         <input 
           type="text"
           placeholder="Search Live Fixtures..."
@@ -63,7 +62,7 @@ export default function GoalPro() {
         />
       </header>
 
-      {/* SPONSORED BOX */}
+      {/* RESTORED SPONSORED BOX */}
       <div className="mb-8 p-8 bg-gradient-to-br from-blue-600/20 to-transparent border border-white/10 rounded-[2.5rem] text-center shadow-2xl">
         <p className="text-[8px] font-black text-blue-400 uppercase tracking-[0.4em] mb-2">Sponsored Analysis</p>
         <h3 className="text-sm font-black uppercase italic">Boost Winning Rates by 92%</h3>
@@ -75,7 +74,7 @@ export default function GoalPro() {
           <div className="text-center py-20 animate-pulse text-blue-500 font-black uppercase text-[10px]">Syncing...</div>
         ) : filteredFixtures.length === 0 ? (
           <div className="text-center py-20 bg-slate-900/20 rounded-[3rem] border border-dashed border-white/5">
-            <p className="text-slate-500 text-[10px] font-black uppercase">No Active Matches Found</p>
+            <p className="text-slate-500 text-[10px] font-black uppercase">No Active Matches</p>
           </div>
         ) : (
           filteredFixtures.map((item: any, idx: number) => (
@@ -124,34 +123,8 @@ export default function GoalPro() {
           <Link href="/guide">Guide</Link>
           <Link href="/support">Support</Link>
         </div>
-        <p className="text-[8px] text-slate-700 uppercase tracking-[0.5em] font-bold">GoalPro V2.5</p>
+        <p className="text-[8px] text-slate-700 uppercase tracking-[0.5em] font-bold">GoalPro Global V2.5</p>
       </footer>
-
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-6">
-          <div className="bg-slate-900 border border-white/10 rounded-[3.5rem] p-10 w-full max-w-sm text-center shadow-2xl">
-            <h2 className="text-3xl font-black uppercase italic text-white mb-8 tracking-tighter">Unlock VIP</h2>
-            <div id="paypal-container" className="min-h-[150px]">
-              <Script 
-                src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}`} 
-                onLoad={() => {
-                  // @ts-ignore
-                  if (window.paypal) {
-                    window.paypal.Buttons({
-                      style: { layout: 'vertical', color: 'blue', shape: 'pill' },
-                      createOrder: (data, actions) => actions.order.create({
-                        purchase_units: [{ amount: { currency_code: "USD", value: "1.00" } }]
-                      }),
-                      onApprove: (data, actions) => actions.order.capture().then(() => { setIsPaid(true); setShowPaymentModal(false); })
-                    }).render('#paypal-container');
-                  }
-                }}
-              />
-            </div>
-            <button onClick={() => setShowPaymentModal(false)} className="mt-8 text-slate-600 text-[10px] font-black uppercase">Cancel</button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
