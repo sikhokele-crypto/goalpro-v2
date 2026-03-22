@@ -1,10 +1,9 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Script from 'next/script';
-import Link from 'next/link';
 
-// UPDATED: Your new iSports API Key
+// Your New iSports API Key
 const API_KEY = 'Mo7HJTjnzFp3OvBl'; 
 const PAYPAL_CLIENT_ID = 'AT-mbb_TV5_ftmtSk9AY3P7qTT8rewfzT3qsxw4gu_rNbGgLsCC8nn0Ux17VcL5vYoidoYxWYwl4uqxS';
 const PUB_ID = 'pub-4608500942276282';
@@ -48,59 +47,23 @@ export default function GoalPro() {
     };
   };
 
-  const getAutoPick = (probs: any) => {
-    const { homeProb, drawProb, awayProb } = probs;
-    const max = Math.max(homeProb, drawProb, awayProb);
-    if (homeProb === max) return "HOME WIN";
-    if (awayProb === max) return "AWAY WIN";
-    return "DRAW / X";
-  };
-
-  useEffect(() => {
-    const fetchLiveData = async () => {
-      try {
-        setLoading(true);
-        const now = new Date();
-        // If it's late night, look at tomorrow's games
-        if (now.getHours() >= 22) now.setDate(now.getDate() + 1);
-        const targetDate = now.toISOString().split('T')[0];
-        
-        const res = await axios.get('https://v3.football.api-sports.io/fixtures', {
-          params: { date: targetDate },
-          headers: { 
-            'x-apisports-key': API_KEY, 
-            'x-rapidapi-host': 'v3.football.api-sports.io' 
-          }
-        });
-        
-        const allMatches = res.data.response || [];
-        
-        // Safety check: If today is empty, try the next day automatically
-        if (allMatches.length === 0) {
-          now.setDate(now.getDate() + 1);
-          const nextDay = now.toISOString().split('T')[0];
-          const resNext = await axios.get('https://v3.football.api-sports.io/fixtures', {
-            params: { date: nextDay },
-            headers: { 'x-apisports-key': API_KEY }
-          });
-          setFixtures(resNext.data.response || []);
-        } else {
-          const sortedMatches = allMatches.sort((a: any, b: any) => {
-            const aPop = POPULAR_LEAGUES.includes(a.league.id) ? 1 : 0;
-            const bPop = POPULAR_LEAGUES.includes(b.league.id) ? 1 : 0;
-            return bPop - aPop;
-          }).filter((f: any) => f.fixture.status.short !== 'FT');
-
-          setFixtures(sortedMatches);
-        }
-      } catch (err) {
-        console.error("Fetch Error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLiveData();
+  const fetchLiveData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const targetDate = new Date().toISOString().split('T')[0];
+      const res = await axios.get('https://v3.football.api-sports.io/fixtures', {
+        params: { date: targetDate },
+        headers: { 'x-apisports-key': API_KEY, 'x-rapidapi-host': 'v3.football.api-sports.io' }
+      });
+      setFixtures(res.data.response || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchLiveData(); }, [fetchLiveData]);
 
   const getEliteMarket = (item: any, market: string, probs: any) => {
     const markets: any = {
@@ -113,94 +76,96 @@ export default function GoalPro() {
       "Home_Overs": `Over ${probs.homeLambda > 1.9 ? '1.5' : '0.5'}`,
       "Total_Corners": `Over ${(item.teams.home.id % 4) + 7.5}`,
     };
-    return markets[market] || "90% IQ";
-  };
-
-  const AdSlot = () => {
-    useEffect(() => {
-      try { // @ts-ignore
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (e) {}
-    }, []);
-    return (
-      <div className="my-6 p-4 bg-blue-900/5 rounded-3xl border border-dashed border-slate-800 text-center">
-        <ins className="adsbygoogle" style={{ display: 'block' }} data-ad-client={`ca-${PUB_ID}`} data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
-      </div>
-    );
+    return markets[market] || "PRO";
   };
 
   return (
-    <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-32">
-      <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} crossOrigin="anonymous" strategy="afterInteractive" />
+    <main className="min-h-screen bg-[#020617] text-slate-100 p-4 max-w-xl mx-auto pb-32">
+      <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} crossOrigin="anonymous" />
+      <Script 
+        src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`} 
+        onLoad={() => console.log("PayPal Ready")}
+      />
 
-      <header className="sticky top-0 z-40 bg-[#020617]/95 backdrop-blur-md pt-4 pb-6 border-b border-slate-800/50 mb-8 px-2">
+      <header className="sticky top-0 z-40 bg-[#020617]/95 backdrop-blur-md pt-4 pb-6 border-b border-slate-800/50 mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-black text-blue-500 italic tracking-tighter">GOALPRO</h1>
-          <button onClick={() => !isPaid && setShowPaymentModal(true)} className={`${isPaid ? 'bg-emerald-600' : 'bg-blue-600'} px-5 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20`}>
+          <h1 className="text-4xl font-black text-blue-500 italic">GOALPRO</h1>
+          <button onClick={() => !isPaid && setShowPaymentModal(true)} className={`${isPaid ? 'bg-emerald-600' : 'bg-blue-600'} px-5 py-2 rounded-2xl text-[10px] font-black uppercase shadow-lg`}>
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
-        <input type="text" placeholder="Search Premier League..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all" />
+        <input type="text" placeholder="Search matches..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-blue-500" />
       </header>
 
       <div className="space-y-8">
         {loading ? (
-            <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20 tracking-widest">Calculating Poisson Probabilities...</p>
-        ) : fixtures.length === 0 ? (
-          <p className="text-center text-slate-500 py-20 font-bold">No active matches found for today.</p>
+          <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20">Syncing Live Data...</p>
         ) : (
-          fixtures.filter((f: any) => 
-            f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            f.league.name.toLowerCase().includes(searchTerm.toLowerCase())
-          ).slice(0, 50).map((item: any, index: number) => {
+          fixtures.filter(f => f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => {
             const probs = getPoissonPredictions(item);
-            const autoPick = getAutoPick(probs);
             const isPopular = POPULAR_LEAGUES.includes(item.league.id);
-
             return (
-              <div key={item.fixture.id}>
-                {index % 5 === 0 && index !== 0 && <AdSlot />}
-                <div className={`bg-[#0f172a] rounded-[2.5rem] border ${isPopular ? 'border-blue-500/40 shadow-blue-500/5' : 'border-slate-800/80'} p-6 shadow-2xl relative overflow-hidden`}>
-                  
-                  <div className={`absolute top-0 right-10 ${isPopular ? 'bg-yellow-500' : 'bg-blue-600'} px-4 py-1.5 rounded-b-xl shadow-lg`}>
-                    <p className={`text-[7px] font-black uppercase tracking-widest ${isPopular ? 'text-black' : 'text-white'}`}>Auto-Pick: {autoPick}</p>
+              <div key={item.fixture.id} className={`bg-[#0f172a] rounded-[2.5rem] border ${isPopular ? 'border-blue-500/30' : 'border-slate-800'} p-6 shadow-2xl relative overflow-hidden`}>
+                <div className="absolute top-0 right-10 bg-blue-600 px-4 py-1.5 rounded-b-xl">
+                  <p className="text-[7px] font-black uppercase text-white">Auto-Pick: {probs.homeProb > probs.awayProb ? "HOME" : "AWAY"}</p>
+                </div>
+                <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase">
+                  <span className={isPopular ? 'text-blue-400' : ''}>{item.league.name}</span>
+                  <span className="text-blue-400">{new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                </div>
+                <div className="flex justify-between items-center mb-10 font-black text-xl text-white uppercase">
+                  <span className="flex-1 text-center">{item.teams.home.name}</span>
+                  <span className="px-4 opacity-10 text-[10px] italic">VS</span>
+                  <span className="flex-1 text-center">{item.teams.away.name}</span>
+                </div>
+                <div className="mb-8">
+                  <div className="flex justify-between mb-2 text-[9px] font-black uppercase text-slate-500 px-1">
+                    <span>H {probs.homeProb}%</span>
+                    <span>D {probs.drawProb}%</span>
+                    <span>A {probs.awayProb}%</span>
                   </div>
-
-                  <div className="flex justify-between text-[9px] font-black text-slate-400 mb-6 uppercase tracking-widest">
-                    <span className={isPopular ? 'text-blue-400' : ''}>{isPopular && "⭐ "}{item.league.name}</span>
-                    <span className="text-blue-400">{new Date(item.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                  <div className="h-1.5 w-full flex rounded-full overflow-hidden bg-slate-800">
+                    <div style={{ width: `${probs.homeProb}%` }} className="bg-blue-500" />
+                    <div style={{ width: `${probs.drawProb}%` }} className="bg-slate-600" />
+                    <div style={{ width: `${probs.awayProb}%` }} className="bg-emerald-500" />
                   </div>
-
-                  <div className="flex justify-between items-center mb-10 px-2 font-black text-xl text-white uppercase tracking-tight">
-                    <span className="flex-1 text-center">{item.teams.home.name}</span>
-                    <span className="px-4 opacity-10 text-[10px] italic">VS</span>
-                    <span className="flex-1 text-center">{item.teams.away.name}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)} className="py-4 text-[9px] font-black text-white uppercase bg-blue-600/10 border border-blue-500/20 rounded-2xl">
+                    {selectedMatch === item.fixture.id ? "Hide IQ ▲" : "Elite Markets ▼"}
+                  </button>
+                  <a href={BETWAY_AFFILIATE_URL} target="_blank" className="py-4 text-[9px] font-black text-emerald-400 uppercase bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center">Betway</a>
+                </div>
+                {selectedMatch === item.fixture.id && (
+                  <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3">
+                    {["BTTS", "Overs_Unders", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half"].map((m) => (
+                      <div key={m} onClick={() => !isPaid && setShowPaymentModal(true)} className="p-4 rounded-2xl border border-slate-800 bg-black/20 cursor-pointer">
+                        <p className="text-[8px] text-slate-500 font-black uppercase mb-1">{m.replace('_', ' ')}</p>
+                        <div className="flex justify-between items-center">
+                          <p className={`font-black text-xs ${!isPaid ? 'blur-md opacity-20' : 'text-blue-400'}`}>{isPaid ? getEliteMarket(item, m, probs) : "LOCKED"}</p>
+                          {!isPaid && <span className="text-[6px] bg-blue-600 px-2 py-0.5 rounded-full font-black text-white">VIP</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
 
-                  <div className="mb-8">
-                    <div className="flex justify-between mb-2 text-[9px] font-black uppercase text-slate-500 px-1">
-                      <span className={probs.homeProb > 45 ? "text-blue-400" : ""}>H {probs.homeProb}%</span>
-                      <span>D {probs.drawProb}%</span>
-                      <span className={probs.awayProb > 45 ? "text-emerald-400" : ""}>A {probs.awayProb}%</span>
-                    </div>
-                    <div className="h-1.5 w-full flex rounded-full overflow-hidden bg-slate-800">
-                      <div style={{ width: `${probs.homeProb}%` }} className="bg-blue-500"></div>
-                      <div style={{ width: `${probs.drawProb}%` }} className="bg-slate-600"></div>
-                      <div style={{ width: `${probs.awayProb}%` }} className="bg-emerald-500"></div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setSelectedMatch(selectedMatch === item.fixture.id ? null : item.fixture.id)} className="py-4 text-[9px] font-black text-white uppercase bg-blue-600/10 border border-blue-500/20 rounded-2xl">
-                      {selectedMatch === item.fixture.id ? "Hide IQ ▲" : "Elite Markets ▼"}
-                    </button>
-                    <a href={BETWAY_AFFILIATE_URL} target="_blank" className="py-4 text-[9px] font-black text-emerald-400 uppercase bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-center flex items-center justify-center">Betway</a>
-                  </div>
-
-                  {selectedMatch === item.fixture.id && (
-                    <div className="mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-2 gap-3">
-                      {["BTTS", "Overs_Unders", "Double_Chance", "Handicap", "Clean_Sheet", "First_Half", "Home_Overs", "Total_Corners"].map((m) => (
-                        <div key={m} onClick={() => !isPaid && setShowPaymentModal(true)} className="p-4 rounded-2xl border border-slate-800 bg-black/20 cursor-pointer">
-                          <p className="text-[8px] text-slate-500 font-black uppercase mb-1 tracking-widest">{m.replace('_', ' ')}</p>
-                          <div className="flex justify-between items-center">
-                            <p className={`font-black text-xs ${!isPaid ? 'blur-md opacity-20' : 'text-blue-400
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/98 backdrop-blur-2xl flex items-center justify-center p-6 z-50">
+          <div className="bg-[#0f172a] border border-blue-500/20 rounded-[3rem] p-10 w-full max-w-sm text-center shadow-2xl">
+            <h2 className="text-3xl font-black italic mb-2 uppercase text-white">Unlock VIP</h2>
+            <div id="paypal-container" className="my-8 min-h-[150px]">
+              {/* PayPal button will render here automatically if script is loaded */}
+            </div>
+            <button onClick={() => setShowPaymentModal(false)} className="text-slate-600 text-[10px] font-black uppercase">Close</button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
