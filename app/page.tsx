@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Script from "next/script";
 
-const API_KEY = "3"; // Using TheSportsDB free key '3'
+const TSDB_API_KEY = "3"; 
+const TSDB_BASE_URL = "https://www.thesportsdb.com/api/v1/json";
 const PAYPAL_CLIENT_ID = "AT-mbb_TV5_ftmtSk9AY3P7qTT8rewfzT3qsxw4gu_rNbGgLsCC8nn0Ux17VcL5vYoidoYxWYwl4uqxS";
 const PUB_ID = "pub-4608500942276282";
 const BETWAY_AFFILIATE_URL = "https://www.betway.co.za";
 
-// TheSportsDB IDs for Popular Leagues
-const POPULAR_LEAGUES = [4328, 4335, 4331, 4332, 4334, 4356];
+// Popular League IDs from TheSportsDB
+const POPULAR_LEAGUES = [4328, 4335, 4331, 4332, 4334, 4356, 4406, 4344];
 
 export default function GoalPro() {
   const [fixtures, setFixtures] = useState<any[]>([]);
@@ -46,44 +47,45 @@ export default function GoalPro() {
       homeProb: Math.floor((hWin / total) * 100),
       drawProb: Math.floor((draw / total) * 100),
       awayProb: Math.floor((aWin / total) * 100),
-      homeLambda,
-      awayLambda,
+      homeLambda, awayLambda,
     };
   };
 
-  const getAutoPick = (probs: any) => {
-    const max = Math.max(probs.homeProb, probs.drawProb, probs.awayProb);
-    if (probs.homeProb === max) return "HOME WIN";
-    if (probs.awayProb === max) return "AWAY WIN";
-    return "DRAW / X";
-  };
+  // ✅ NEW FETCH LOGIC: Fetches all leagues for the current day
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Using 'eventsday.php' as seen in your V1 Docs screenshot
+      const res = await axios.get(`${TSDB_BASE_URL}/${TSDB_API_KEY}/eventsday.php?d=${today}&s=Soccer`);
+      const events = res.data.events || [];
+      
+      const mapped = events.map((event: any) => ({
+        fixture: { id: parseInt(event.idEvent) },
+        league: { id: parseInt(event.idLeague), name: event.strLeague },
+        teams: {
+          home: { id: parseInt(event.idHomeTeam), name: event.strHomeTeam },
+          away: { id: parseInt(event.idAwayTeam), name: event.strAwayTeam }
+        }
+      }));
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Fetching Next 15 events for EPL (4328)
-        const res = await axios.get(`https://www.thesportsdb.com/api/v1/json/${API_KEY}/eventsnextleague.php?id=4328`);
-        const events = res.data.events || [];
-        
-        const mapped = events.map((event: any) => ({
-          fixture: { id: parseInt(event.idEvent) },
-          league: { id: parseInt(event.idLeague), name: event.strLeague },
-          teams: {
-            home: { id: parseInt(event.idHomeTeam), name: event.strHomeTeam },
-            away: { id: parseInt(event.idAwayTeam), name: event.strAwayTeam }
-          }
-        }));
+      // Sort so popular leagues appear first
+      const sorted = mapped.sort((a: any, b: any) => {
+        const aPop = POPULAR_LEAGUES.includes(a.league.id) ? 1 : 0;
+        const bPop = POPULAR_LEAGUES.includes(b.league.id) ? 1 : 0;
+        return bPop - aPop;
+      });
 
-        setFixtures(mapped);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+      setFixtures(sorted);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const getEliteMarket = (item: any, market: string, probs: any) => {
     const markets: any = {
@@ -99,17 +101,6 @@ export default function GoalPro() {
     return markets[market] || "90% IQ";
   };
 
-  const AdSlot = () => {
-    useEffect(() => {
-      try { (window as any).adsbygoogle = ((window as any).adsbygoogle || []).push({}); } catch {}
-    }, []);
-    return (
-      <div className="my-6 p-4 text-center border border-dashed border-slate-700 rounded-2xl">
-        <ins className="adsbygoogle" style={{ display: "block" }} data-ad-client={`ca-${PUB_ID}`} data-ad-slot="auto" data-ad-format="auto" />
-      </div>
-    );
-  };
-
   return (
     <main className="min-h-screen bg-[#020617] text-white p-4 max-w-xl mx-auto pb-32">
       <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} strategy="afterInteractive" crossOrigin="anonymous" />
@@ -122,24 +113,26 @@ export default function GoalPro() {
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
-        <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search matches..." className="w-full bg-[#0f172a] border border-slate-800 p-4 rounded-2xl text-sm" />
+        <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search team or league..." className="w-full bg-[#0f172a] border border-slate-800 p-4 rounded-2xl text-sm" />
       </header>
 
       <div className="space-y-8">
         {loading ? (
-          <p className="text-center text-blue-500 animate-pulse py-20">Loading predictions...</p>
+          <p className="text-center text-blue-500 animate-pulse py-20">Syncing Multi-League Data...</p>
         ) : (
-          fixtures.filter(f => f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 50).map((item, index) => {
+          fixtures.filter(f => 
+            f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            f.league.name.toLowerCase().includes(searchTerm.toLowerCase())
+          ).slice(0, 60).map((item, index) => {
             const probs = getPoissonPredictions(item);
             const isPopular = POPULAR_LEAGUES.includes(item.league.id);
 
             return (
               <div key={item.fixture.id}>
-                {index % 5 === 0 && index !== 0 && <AdSlot />}
                 <div className={`bg-[#0f172a] p-6 rounded-3xl border ${isPopular ? "border-blue-500 shadow-lg shadow-blue-500/10" : "border-slate-800"}`}>
                   <div className="text-[10px] mb-3 font-bold text-slate-400 flex justify-between uppercase tracking-widest">
                     <span>{item.league.name}</span>
-                    <span className="text-blue-400">PICK: {getAutoPick(probs)}</span>
+                    <span className="text-blue-400">PICK: {probs.homeProb > probs.awayProb ? "HOME" : "AWAY"}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg mb-6 uppercase">
                     <span className="text-center flex-1">{item.teams.home.name}</span>
@@ -164,7 +157,6 @@ export default function GoalPro() {
                       ))}
                     </div>
                   )}
-                  <a href={BETWAY_AFFILIATE_URL} target="_blank" className="block mt-5 text-center text-[10px] text-slate-500 underline uppercase tracking-widest">Betway Official Partner →</a>
                 </div>
               </div>
             );
@@ -174,12 +166,11 @@ export default function GoalPro() {
 
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-6">
-          <div className="bg-[#0f172a] p-8 rounded-[2.5rem] text-center w-full max-w-sm border border-blue-500/30 shadow-2xl">
+          <div className="bg-[#0f172a] p-8 rounded-[2.5rem] text-center w-full max-w-sm border border-blue-500/30">
             <h2 className="text-2xl font-black mb-2 italic">UNLOCK VIP</h2>
-            <p className="text-[10px] text-slate-400 mb-6 uppercase tracking-widest font-bold">Access All 8 Elite AI Markets</p>
-            <div id="paypal-button-container" className="min-h-[150px]"></div>
-            <PayPalButtonsRenderer isPaid={isPaid} setIsPaid={setIsPaid} setShowPaymentModal={setShowPaymentModal} />
-            <button onClick={() => setShowPaymentModal(false)} className="mt-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Maybe Later</button>
+            <div id="paypal-button-container" className="min-h-[150px] mt-4"></div>
+            <PayPalButtonsRenderer setIsPaid={setIsPaid} setShowPaymentModal={setShowPaymentModal} />
+            <button onClick={() => setShowPaymentModal(false)} className="mt-6 text-[10px] font-black text-slate-500 uppercase">Close</button>
           </div>
         </div>
       )}
@@ -187,13 +178,12 @@ export default function GoalPro() {
   );
 }
 
-// Helper component to safely render PayPal buttons
 function PayPalButtonsRenderer({ setIsPaid, setShowPaymentModal }: any) {
   useEffect(() => {
     const timer = setTimeout(() => {
       if ((window as any).paypal) {
         (window as any).paypal.Buttons({
-          style: { layout: 'vertical', color: 'blue', shape: 'pill', label: 'pay' },
+          style: { layout: 'vertical', color: 'blue', shape: 'pill' },
           createOrder: (data: any, actions: any) => actions.order.create({ purchase_units: [{ amount: { currency_code: "USD", value: "1.00" } }] }),
           onApprove: (data: any, actions: any) => actions.order.capture().then(() => { setIsPaid(true); setShowPaymentModal(false); })
         }).render("#paypal-button-container");
