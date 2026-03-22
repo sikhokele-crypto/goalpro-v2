@@ -12,12 +12,15 @@ const BETWAY_AFFILIATE_URL = 'https://www.betway.co.za';
 const POPULAR_LEAGUES = [39, 140, 2, 135, 78];
 
 export default function GoalPro() {
-  const [fixtures, setFixtures] = useState<any[]>([]); // FIX 1: Explicitly type state
+  const [hasMounted, setHasMounted] = useState(false); // Fix for hydration
+  const [fixtures, setFixtures] = useState<any[]>([]); 
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false); 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
+
+  useEffect(() => { setHasMounted(true); }, []);
 
   const factorial = (n: number): number => (n <= 1 ? 1 : n * factorial(n - 1));
   const poisson = (expected: number, actual: number) => (Math.exp(-expected) * Math.pow(expected, actual)) / factorial(actual);
@@ -55,11 +58,14 @@ export default function GoalPro() {
   };
 
   useEffect(() => {
+    if (!hasMounted) return;
+
     const fetchLiveData = async () => {
       try {
         setLoading(true);
         const now = new Date();
-        if (now.getHours() >= 22) now.setDate(now.getDate() + 1);
+        // Adjust date logic to be more conservative
+        if (now.getHours() >= 23) now.setDate(now.getDate() + 1); 
         const targetDate = now.toISOString().split('T')[0];
         
         const res = await axios.get('https://v3.football.api-sports.io/fixtures', {
@@ -77,13 +83,13 @@ export default function GoalPro() {
 
         setFixtures(sortedMatches);
       } catch (err) {
-        console.error(err);
+        console.error("Fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchLiveData();
-  }, []);
+  }, [hasMounted]);
 
   const getEliteMarket = (item: any, market: string, probs: any) => {
     const markets: any = {
@@ -99,7 +105,6 @@ export default function GoalPro() {
     return markets[market] || "90% IQ";
   };
 
-  // FIX 2: Correct AdSlot placement and hydration check
   const AdSlot = () => {
     useEffect(() => {
       try { // @ts-ignore
@@ -114,6 +119,8 @@ export default function GoalPro() {
     );
   };
 
+  if (!hasMounted) return null;
+
   return (
     <main className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans max-w-xl mx-auto pb-32">
       <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${PUB_ID}`} crossOrigin="anonymous" strategy="afterInteractive" />
@@ -125,12 +132,14 @@ export default function GoalPro() {
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </div>
-        <input type="text" placeholder="Search Premier League..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none" />
+        <input type="text" placeholder="Search team or league..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#0f172a] border border-slate-800 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none" />
       </header>
 
       <div className="space-y-8">
         {loading ? (
            <p className="text-center text-blue-500 animate-pulse font-black uppercase text-[10px] py-20 tracking-widest">Syncing Popular Fixtures...</p>
+        ) : fixtures.length === 0 ? (
+          <p className="text-center text-slate-500 py-20">No active fixtures found for this date.</p>
         ) : (
           fixtures.filter((f: any) => 
             f.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
