@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    // This ignores the 'item' error you were having
-    ignoreBuildErrors: true,
+  images: {
+    domains: ['logos.skysports.com'], // If you decide to show team logos later
   },
-  // We removed the 'eslint' block that caused the new error
+  experimental: {
+    serverActions: true,
+  },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
