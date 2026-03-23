@@ -1,10 +1,17 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  images: {
-    domains: ['logos.skysports.com'], // If you decide to show team logos later
-  },
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   experimental: {
-    serverActions: true,
+    // serverActions is now true by default in Next.js 16, 
+    // but this is the correct way to write it if you need it:
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.skysports.com',
+      },
+    ],
   },
 };
 
