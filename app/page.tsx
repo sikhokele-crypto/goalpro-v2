@@ -1,5 +1,5 @@
 import { dbConnect } from "@/lib/dbConnect";
-import Match from '@/models/Match';
+import Match from '@/lib/models/Match';
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
