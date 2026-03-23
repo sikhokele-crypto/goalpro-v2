@@ -1,13 +1,16 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, model, models } from 'mongoose';
 
-const MatchSchema = new mongoose.Schema({
-  homeTeam: String,
-  awayTeam: String,
-  league: String,
-  startTime: Date,
-  prediction: String,
-  probability: String,
-  isElite: Boolean,
-});
+const MatchSchema = new Schema({
+  teamA: { type: String, required: true },
+  teamB: { type: String, required: true },
+  probability: { type: String, required: true },
+  time: { type: String, required: true },
+  league: { type: String },
+  prediction: { type: String }, // e.g., "Home Win"
+  odds: { type: String },
+}, { timestamps: true });
 
-export const Match = mongoose.models.Match || mongoose.model('Match', MatchSchema);
+// This prevents Mongoose from creating the model twice during hot-reloads
+const Match = models.Match || model('Match', MatchSchema);
+
+export default Match;
