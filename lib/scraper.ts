@@ -1,5 +1,5 @@
 import { dbConnect } from "./dbConnect";
-import { Match } from "./models/Match";
+import Match from "./models/Match";
 
 export async function scrapeMatches() {
   await dbConnect();
