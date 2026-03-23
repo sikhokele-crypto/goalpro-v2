@@ -19,7 +19,7 @@ export default async function GoalProHome() {
   const cacheKey = `matches:${new Date().toDateString()}`;
 
   // 3. Try to fetch matches from Redis first to save database costs
-  let matches: any = await redis.get(cacheKey);
+  let matches: any = null; // await redis.get(cacheKey);
 
   if (!matches) {
     // 4. If not in cache, fetch REAL games from MongoDB
