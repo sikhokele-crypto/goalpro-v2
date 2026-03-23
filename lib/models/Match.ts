@@ -6,11 +6,9 @@ const MatchSchema = new Schema({
   probability: { type: String, required: true },
   time: { type: String, required: true },
   league: { type: String },
-  prediction: { type: String }, // e.g., "Home Win"
+  prediction: { type: String },
   odds: { type: String },
 }, { timestamps: true });
 
-// This prevents Mongoose from creating the model twice during hot-reloads
 const Match = models.Match || model('Match', MatchSchema);
-
-export default Match;
+export default Match; // <--- This must be "export default"
