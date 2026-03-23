@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/dbConnect';
-import Match from '@/models/Match'; // Ensure you have a Match model defined
+import Match from '../../../models/Match';
 
 export async function GET() {
   try {
