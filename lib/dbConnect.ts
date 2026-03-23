@@ -6,11 +6,13 @@ export async function dbConnect() {
   if (mongoose.connection.readyState >= 1) return;
 
   try {
+    // We force the dbName here to match your 'GoalPro-DB' exactly
     return await mongoose.connect(MONGODB_URI, {
-      dbName: "GoalPro-DB", // This forces the app to use the exact name you saw
-      serverSelectionTimeoutMS: 5000,
+      dbName: "GoalPro-DB", 
+      serverSelectionTimeoutMS: 10000, // Give it 10 seconds to find the server
     });
   } catch (e) {
-    console.error("MongoDB Connection Error:", e);
+    console.error("CRITICAL MongoDB Connection Error:", e);
+    throw e;
   }
 }
