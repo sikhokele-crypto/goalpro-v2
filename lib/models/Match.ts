@@ -1,14 +1,15 @@
 import mongoose, { Schema, model, models } from 'mongoose';
 
 const MatchSchema = new Schema({
-  teamA: { type: String, required: true },
-  teamB: { type: String, required: true },
-  probability: { type: String, required: true },
-  time: { type: String, required: true },
-  league: { type: String },
-  prediction: { type: String },
-  odds: { type: String },
-}, { timestamps: true });
+  homeTeam: { type: String, required: true },
+  awayTeam: { type: String, required: true },
+  league: { type: String, required: true },
+  startTime: { type: Date, required: true },
+  over15Prob: { type: Number, required: true },
+  odds: { type: Number },
+  lastUpdated: { type: Date, default: Date.now }
+});
 
 const Match = models.Match || model('Match', MatchSchema);
-export default Match; // <--- This must be "export default"
+
+export default Match;
