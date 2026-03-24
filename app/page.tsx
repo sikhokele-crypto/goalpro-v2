@@ -1,108 +1,146 @@
-// =======================
-// app/page.tsx
-// =======================
-import { dbConnect } from "@/lib/dbConnect";
-import Match from "@/lib/models/Match";
-import { Redis } from "@upstash/redis";
+export const dynamic = 'force-dynamic';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+import React from 'react';
+import dbConnect from '@/lib/dbConnect';
+import Match from '@/models/Match';
+import { 
+  Trophy, 
+  Clock, 
+  ChevronRight, 
+  AlertCircle, 
+  TrendingUp, 
+  Zap 
+} from 'lucide-react';
 
-export default async function GoalProHome() {
-  await dbConnect();
+// Revalidation time (optional, but good for sports data)
+export const revalidate = 60; 
 
-  const cacheKey = `matches:${new Date().toDateString()}`;
-  
-  // Attempt to get data from Redis cache
-  let matches: any = await redis.get(cacheKey);
-
-  if (!matches) {
-    console.log("Empty Cache: Fetching from MongoDB...");
-    
-    // Fetch real games from MongoDB
-    matches = await Match.find({})
-      .sort({ startTime: 1 })
-      .limit(100)
-      .lean();
-
-    // DEBUG: Check this in your Vercel Logs
-    console.log("Database Results:", matches);
-
-    if (matches && matches.length > 0) {
-      await redis.set(cacheKey, matches, { ex: 1800 });
-    }
-  } else {
-    console.log("Data loaded from Redis Cache.");
+async function getMatches() {
+  try {
+    await dbConnect();
+    // Fetch matches sorted by start time
+    const matches = await Match.find({}).sort({ startTime: 1 }).lean();
+    return JSON.parse(JSON.stringify(matches));
+  } catch (error) {
+    console.error("Database error:", error);
+    return [];
   }
+}
+
+export default async function HomePage() {
+  const matches = await getMatches();
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans">
-      {/* HEADER */}
-      <nav className="p-6 border-b border-zinc-800 flex justify-between items-center sticky top-0 bg-black/80 backdrop-blur-md z-50">
-        <h1 className="text-2xl font-black text-yellow-500 italic">
-          GOALPRO V2
-        </h1>
-        <div className="bg-zinc-900 px-4 py-1.5 rounded-full text-xs font-bold border border-zinc-700">
-          {matches?.length || 0} Games Live
-        </div>
-      </nav>
-
-      {/* REFERRAL BOX */}
-      <div className="p-6">
-        <div className="bg-gradient-to-br from-yellow-500 to-orange-600 p-6 rounded-[2rem] text-black shadow-xl shadow-yellow-500/10">
-          <h2 className="font-black text-xl mb-1 text-black">Unlock Elite VIP Tips 🏆</h2>
-          <p className="text-sm font-medium mb-4 opacity-90">Invite 3 friends to get 2 days of 95% Accuracy Tips.</p>
-          <div className="bg-black/10 p-3 rounded-2xl flex items-center justify-between border border-black/5">
-            <code className="text-[10px] font-bold truncate mr-2">goalpro-v2.vercel.app/join?ref=user_id</code>
-            <button className="bg-black text-white text-[10px] px-4 py-2 rounded-xl font-bold active:scale-95 transition-transform">COPY</button>
-          </div>
-        </div>
-      </div>
-
-      {/* FIXTURES SECTION */}
-      <div className="px-6 pb-10">
-        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">High Probability Picks</h3>
-        
-        <section className="space-y-4">
-          {!matches || matches.length === 0 ? (
-            <div className="text-center py-20 border-2 border-dashed border-zinc-800 rounded-[2rem]">
-              <p className="text-zinc-500 font-bold">No real games found in database.</p>
-              <p className="text-[10px] text-zinc-600 mt-2 uppercase tracking-tighter">Visit /api/scrape to sync live data</p>
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-indigo-500/30">
+      {/* Hero Section */}
+      <header className="relative overflow-hidden bg-indigo-600 py-12 px-6">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <Zap className="w-6 h-6 text-yellow-400 fill-yellow-400" />
             </div>
-          ) : (
-            matches.map((m: any) => (
-              <div key={m._id.toString()} className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-[2rem]">
-                <div className="flex justify-between items-center text-[10px] font-bold mb-4">
-                  <span className="text-zinc-500 uppercase">{m.league || 'Soccer'}</span>
-                  <span className="text-green-500 bg-green-500/10 px-2 py-0.5 rounded italic">{m.probability} PROBABILITY</span>
-                </div>
+            <h1 className="text-4xl font-black tracking-tighter uppercase italic">
+              GoalPro <span className="text-indigo-200 text-2xl not-italic font-medium">v2</span>
+            </h1>
+          </div>
+          <p className="text-indigo-100 max-w-xl text-lg font-medium leading-tight">
+            Advanced Predictive Analytics for Over 1.5 Goals. 
+            Powered by real-time market data.
+          </p>
+        </div>
+      </header>
 
-                <div className="flex justify-between items-center my-6 gap-2">
-                  <span className="flex-1 font-black text-lg text-left leading-tight">{m.homeTeam}</span>
-                  <span className="text-zinc-700 font-black italic text-sm">VS</span>
-                  <span className="flex-1 font-black text-lg text-right leading-tight">{m.awayTeam}</span>
-                </div>
+      <main className="max-w-6xl mx-auto px-6 py-10">
+        {/* Stats Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-slate-400 font-bold text-sm uppercase tracking-wider">Live Fixtures</span>
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="text-3xl font-black">{matches.length}</div>
+          </div>
+          {/* Add more stat cards here as needed */}
+        </div>
 
-                <div className="bg-black/40 border border-zinc-800/50 p-4 rounded-2xl flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase mb-0.5 tracking-tighter">Prediction</span>
-                    <span className={`font-black ${m.isElite ? "blur-md select-none" : "text-yellow-500"}`}>
-                      {m.prediction}
-                    </span>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Trophy className="w-6 h-6 text-indigo-500" />
+            Top Probability Picks
+          </h2>
+          <span className="text-xs font-bold bg-slate-800 px-3 py-1 rounded-full text-slate-400 uppercase tracking-widest">
+            Updated Live
+          </span>
+        </div>
+
+        {matches.length === 0 ? (
+          <div className="bg-slate-900/50 border-2 border-dashed border-slate-800 rounded-3xl p-20 text-center">
+            <AlertCircle className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-slate-500 mb-2">No active matches found</h3>
+            <p className="text-slate-600 mb-6">Run the scraper to populate the database with today&apos;s games.</p>
+            <a 
+              href="/api/scrape" 
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20"
+            >
+              Run Scraper Now
+              <ChevronRight className="w-4 h-4" />
+            </a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {matches.map((match: any) => {
+              const probability = (match.over15Prob * 100).toFixed(1);
+              
+              return (
+                <div 
+                  key={match._id} 
+                  className="group bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-5 transition-all duration-300"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-tighter">
+                      <Clock className="w-3 h-3" />
+                      {new Date(match.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <span className="text-slate-700">•</span>
+                      <span className="text-indigo-400">{match.league}</span>
+                    </div>
                   </div>
-                  {m.isElite && (
-                    <button className="bg-yellow-500 text-black text-[10px] font-black px-4 py-2 rounded-xl shadow-lg shadow-yellow-500/20">
-                      UNLOCK
-                    </button>
-                  )}
+
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex-1">
+                      <div className="text-lg font-bold truncate leading-tight mb-1 group-hover:text-indigo-400 transition-colors">
+                        {match.homeTeam}
+                      </div>
+                      <div className="text-lg font-bold truncate leading-tight">
+                        {match.awayTeam}
+                      </div>
+                    </div>
+                    
+                    <div className="text-right">
+                      <div className="text-3xl font-black text-indigo-500 tracking-tighter">
+                        {probability}%
+                      </div>
+                      <div className="text-[10px] font-black uppercase text-slate-500">Over 1.5 Prob</div>
+                    </div>
+                  </div>
+
+                  {/* Probability Bar */}
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 transition-all duration-1000"
+                      style={{ width: `${probability}%` }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </section>
-      </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      <footer className="border-t border-slate-900 py-10 text-center text-slate-500 text-sm font-medium">
+        &copy; {new Date().getFullYear()} GoalPro-v2 Predictor. Use data responsibly.
+      </footer>
     </div>
   );
 }
