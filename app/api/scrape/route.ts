@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Match from '@/lib/models/Match';
+import Match from '@/lib/models/match';
 
 export const dynamic = 'force-dynamic';
 
