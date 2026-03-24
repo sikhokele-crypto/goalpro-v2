@@ -1,8 +1,8 @@
 // =======================
 // lib/scraper.ts
 // =======================
-import { dbConnect } from "./dbConnect";
-import Match from "./models/Match";
+import { dbConnect } from "@/dbConnect";
+import Match from "@/lib/models/match";
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
