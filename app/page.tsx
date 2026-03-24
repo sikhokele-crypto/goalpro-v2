@@ -1,6 +1,6 @@
 import React from 'react';
 import dbConnect from '../lib/dbConnect';
-import Match from '../models/match';
+import Match from "../lib/models/match";
 import { Trophy, Clock, AlertCircle } from 'lucide-react';
 
 async function getMatches() {
