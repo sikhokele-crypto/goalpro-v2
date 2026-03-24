@@ -3,7 +3,7 @@
 // =======================
 import dbConnect from "@/lib/dbConnect";
 import Match from "@/lib/models/match";
-import Redis from "@upstash/redis";
+import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
