@@ -5,5 +5,4 @@ const UserSchema = new Schema({
   password: { type: String, required: true },
 }, { timestamps: true });
 
-// Exporting as a named constant 'User' for the registration route
 export const User = models.User || model('User', UserSchema);
