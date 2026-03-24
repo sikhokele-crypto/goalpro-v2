@@ -1,32 +1,41 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/lib/dbConnect";
-import { User } from "@/lib/models/User";
+import dbConnect from "@/lib/dbConnect";
+import { User } from "@/models/User"; // Ensure your User model is exported as 'User'
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
-  await dbConnect();
-  const { email, password, refCode } = await req.json();
+  try {
+    const { name, email, password } = await req.json();
 
-  // 1. Create the new user
-  const newUser = await User.create({
-    email,
-    password, // Use a hashing library like bcrypt in production!
-    isVip: false,
-    vipExpiresAt: null
-  });
-
-  // 2. REFERRAL LOGIC: If they used a link, reward the inviter
-  if (refCode) {
-    const inviter = await User.findById(refCode);
-    if (inviter) {
-      // Add 2 days to the inviter's VIP status
-      const currentExpiry = inviter.vipExpiresAt || new Date();
-      const newExpiry = new Date(currentExpiry.getTime() + (2 * 24 * 60 * 60 * 1000));
-      
-      inviter.vipExpiresAt = newExpiry;
-      inviter.isVip = true;
-      await inviter.save();
+    if (!name || !email || !password) {
+      return NextResponse.json({ message: "Missing fields" }, { status: 400 });
     }
-  }
 
-  return NextResponse.json({ success: true, message: "Account created!" });
+    await dbConnect();
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json({ message: "User already exists" }, { status: 400 });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    return NextResponse.json({ 
+      message: "User registered successfully", 
+      userId: newUser._id 
+    }, { status: 201 });
+
+  } catch (error: any) {
+    console.error("Registration Error:", error);
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
 }
