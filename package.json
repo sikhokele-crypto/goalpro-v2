@@ -16,7 +16,8 @@
     "bcryptjs": "^2.4.3",
     "lucide-react": "latest",
     "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.0.0"
+    "@tailwindcss/postcss": "^4.0.0",
+    "@upstash/redis": "^1.34.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
