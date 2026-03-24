@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
-import { User } from "@/models/User";
+import dbConnect from "../../../lib/dbConnect";
+import { User } from "../../../models/User";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
@@ -14,9 +14,12 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashedPassword });
+    const user = await User.create({ 
+      email, 
+      password: hashedPassword 
+    });
 
-    return NextResponse.json({ message: "User created", userId: user._id }, { status: 201 });
+    return NextResponse.json({ message: "User registered", userId: user._id }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
