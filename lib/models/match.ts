@@ -8,6 +8,5 @@ const MatchSchema = new Schema({
   status: { type: String, default: 'upcoming' }
 }, { timestamps: true });
 
-// Exporting as default for the imports used in page.tsx and scrape/route.ts
 const Match = models.Match || model('Match', MatchSchema);
 export default Match;
