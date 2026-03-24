@@ -6,14 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "install": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "next": "16.1.7",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "mongoose": "^8.0.0",
-    "lucide-react": "^0.300.0",
+    "lucide-react": "^0.400.0",
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.0"
   },
