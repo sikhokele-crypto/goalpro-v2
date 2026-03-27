@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
-import Match from '@/lib/models/match';
+import { scrapeMatches } from '@/lib/scraper';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    await dbConnect();
-    // Your scraping logic would go here
-    return NextResponse.json({ message: "Scrape successful" });
+    const result = await scrapeMatches();
+    return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
