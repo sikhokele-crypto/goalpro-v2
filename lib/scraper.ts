@@ -1,11 +1,11 @@
 import dbConnect from "./dbConnect";
-import Match from "./models/match";
+// CHANGE THIS LINE to use the local relative path:
+import Match from "./models/match"; 
 
 export async function scrapeMatches() {
   await dbConnect();
 
   try {
-    // Fetch from The Odds API (Ensure ODDS_API_KEY is in Vercel)
     const response = await fetch(
       `https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=eu&markets=h2h`
     );
@@ -35,7 +35,6 @@ export async function scrapeMatches() {
     }).filter(Boolean);
 
     if (matchesToSave.length > 0) {
-      // Clear old matches and insert fresh ones
       await Match.deleteMany({ startTime: { $lt: new Date() } });
       await Match.insertMany(matchesToSave);
     }
