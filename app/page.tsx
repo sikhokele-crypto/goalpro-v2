@@ -1,15 +1,16 @@
 import React from 'react';
 import dbConnect from '@/lib/dbConnect';
-import Match from "@/models/match";
+// CHANGE THIS LINE:
+import Match from "@/lib/models/match"; 
 import { Trophy, Clock, AlertCircle, Zap } from 'lucide-react';
 
 async function getMatches() {
   try {
     await dbConnect();
-    // Sort by soonest matches first
     const matches = await Match.find({}).sort({ startTime: 1 }).limit(15);
     return JSON.parse(JSON.stringify(matches));
   } catch (e) {
+    console.error("Home Page DB Error:", e);
     return [];
   }
 }
