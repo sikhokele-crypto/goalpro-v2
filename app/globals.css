@@ -3,21 +3,19 @@
 @tailwind utilities;
 
 body {
-  background-color: #0d121d !important; /* Matches the deep blue-grey in image */
+  background: radial-gradient(circle at 20% 0%, #162033 0%, #0d121d 60%);
   color: #ffffff;
   min-height: 100vh;
   margin: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
 }
 
-.market-button {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
-}
-
-.market-button:hover {
-  background: rgba(255, 255, 255, 0.08);
+/* subtle glow overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% -20%, rgba(0,212,255,0.15), transparent 60%);
+  pointer-events: none;
 }
