@@ -1,3 +1,6 @@
+import dbConnect from "./dbConnect";
+import Match from "./models/match";
+
 export async function scrapeMatches() {
   await dbConnect();
 
@@ -10,9 +13,8 @@ export async function scrapeMatches() {
     if (!response.ok) throw new Error("API Limit reached or Error");
     const data = await response.json();
 
-    // The "Internal Filter": We categorize them after they arrive
     const matchesToSave = data.map((item: any) => {
-      // Find Betway or fallback
+      // Find Betway or fallback to first available bookie
       const bookmaker = item.bookmakers?.find((b: any) => b.title.toLowerCase() === "betway") || item.bookmakers?.[0];
       if (!bookmaker) return null;
 
@@ -23,24 +25,47 @@ export async function scrapeMatches() {
 
       if (!hPrice || !aPrice || !dPrice) return null;
 
-      // ... (Your AI prediction logic stays the same) ...
+      // AI Probability & Reliability Logic
+      const hProb = 1 / hPrice;
+      const aProb = 1 / aPrice;
+      const dProb = 1 / dPrice;
+      const margin = (hProb + aProb + dProb) - 1;
+      const reliabilityScore = 1 - margin;
+
+      let prediction = "OVER 1.5 GOALS";
+      let confidence = 0.60;
+
+      if (hProb > 0.65) {
+        prediction = "HOME WIN";
+        confidence = hProb * reliabilityScore;
+      } else if (aProb > 0.65) {
+        prediction = "AWAY WIN";
+        confidence = aProb * reliabilityScore;
+      } else if (hProb > 0.45 && dProb > 0.25) {
+        prediction = "1X (HOME/DRAW)";
+        confidence = (hProb + dProb) * 0.8;
+      }
 
       return {
         homeTeam: item.home_team,
         awayTeam: item.away_team,
-        league: item.sport_title, // This will show if it's League 1, League 2, etc.
+        league: item.sport_title,
         date: item.commence_time,
-        prediction: prediction, // Calculated from hPrice/aPrice
-        probability: probability,
+        prediction,
+        probability: `${Math.round(confidence * 100)}%`,
+        isElite: confidence > 0.78 && margin < 0.08,
         odds: { home: hPrice, draw: dPrice, away: aPrice }
       };
     }).filter(Boolean);
 
-    await Match.deleteMany({});
-    await Match.insertMany(matchesToSave);
+    if (matchesToSave.length > 0) {
+      await Match.deleteMany({});
+      await Match.insertMany(matchesToSave);
+    }
 
     return { success: true, count: matchesToSave.length };
   } catch (error: any) {
+    console.error("Scraper Error:", error.message);
     return { success: false, error: error.message };
   }
 }
