@@ -6,9 +6,10 @@ export async function scrapeMatches() {
   await dbConnect();
 
   try {
-    // Fetch all upcoming soccer matches from multiple regions
+    // FIX: We target 'upcoming' as the sport group to get hundreds of matches 
+    // instead of just the next 8 immediate ones.
     const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=eu,uk,us,au&markets=h2h`
+      `https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=eu,uk,us,au&markets=h2h`
     );
 
     if (!response.ok) {
@@ -18,7 +19,10 @@ export async function scrapeMatches() {
 
     const data = await response.json();
 
-    const matchesToSave = data.map((item: any) => {
+    // Filter to ensure we only get Soccer matches from the 'upcoming' global list
+    const soccerMatches = data.filter((item: any) => item.sport_key.includes('soccer'));
+
+    const matchesToSave = soccerMatches.map((item: any) => {
       // 1. Try Betway first, fallback to any available bookmaker
       const bookmaker =
         item.bookmakers?.find((b: any) => b.title.toLowerCase() === "betway") ||
@@ -33,19 +37,15 @@ export async function scrapeMatches() {
       const aPrice = market.outcomes.find((o: any) => o.name === item.away_team)?.price || 0;
       const dPrice = market.outcomes.find((o: any) => o.name === "Draw")?.price || 0;
 
-      // Skip if any odds missing
       if (!hPrice || !aPrice || !dPrice) return null;
 
-      // Calculate implied probabilities
       const hProb = 1 / hPrice;
       const aProb = 1 / aPrice;
       const dProb = 1 / dPrice;
 
-      // Bookmaker margin
       const margin = hProb + aProb + dProb - 1;
       const reliabilityScore = 1 - margin;
 
-      // AI Prediction Logic
       let prediction = "";
       let confidence = 0;
 
@@ -83,12 +83,11 @@ export async function scrapeMatches() {
     }).filter(Boolean);
 
     if (matchesToSave.length > 0) {
-      // Clear old matches and insert new ones
       await Match.deleteMany({});
       await Match.insertMany(matchesToSave);
     }
 
-    console.log(`✅ AI Scraper: Synced ${matchesToSave.length} matches`);
+    console.log(`✅ AI Scraper: Synced ${matchesToSave.length} soccer matches`);
     return {
       success: true,
       count: matchesToSave.length,
