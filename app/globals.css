@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  background: radial-gradient(circle at 20% 0%, #162033 0%, #0d121d 60%);
+  background-color: #020617 !important; /* Deep Navy from old version */
   color: #ffffff;
   min-height: 100vh;
   margin: 0;
@@ -11,11 +11,11 @@ body {
   justify-content: center;
 }
 
-/* subtle glow overlay */
+/* The subtle blue glow from the old version */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 50% -20%, rgba(0,212,255,0.15), transparent 60%);
+  background: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.1), transparent 70%);
   pointer-events: none;
 }
