@@ -2,35 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --neon-purple: #9333ea;
-  --deep-bg: #1e1b4b; /* Deep Indigo/Purple */
-}
-
 body {
-  background: radial-gradient(circle at top, #2e1065, #0f172a);
-  color: #ffffff;
+  /* Deep Dark Purple Gradient */
+  background: radial-gradient(circle at top, #1e1b4b, #020617);
+  color: #f1f5f9;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
 
-.purple-glow-box {
-  box-shadow: 0 0 20px rgba(147, 51, 234, 0.2);
-  border: 1px solid rgba(147, 51, 234, 0.3);
+/* The Glowing Purple Effect */
+.purple-glow {
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
-.purple-text-glow {
-  text-shadow: 0 0 12px rgba(147, 51, 234, 0.8);
-}
-
-/* Custom Purple Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-::-webkit-scrollbar-thumb {
-  background: #a855f7;
-  border-radius: 10px;
+.purple-text-shadow {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
 }
