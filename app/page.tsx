@@ -11,37 +11,34 @@ export default async function Home() {
   const matches = await getMatches();
 
   return (
-    <main className="w-full max-w-[520px] px-6 pb-32">
+    <main className="w-full max-w-[500px] px-4 pb-32">
       
-      {/* HEADER */}
-      <header className="pt-12 pb-10">
-        <div className="flex justify-between items-center mb-10">
-          
-          <h1 className="text-5xl font-black italic text-[#00d4ff] tracking-tighter drop-shadow-[0_0_20px_rgba(0,212,255,0.6)]">
+      {/* STICKY HEADER: Old Version Look */}
+      <header className="sticky top-0 z-50 bg-[#020617]/95 backdrop-blur-md pt-10 pb-6 mb-8 border-b border-slate-900">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-black italic text-blue-500 tracking-tighter">
             GOALPRO
           </h1>
-
-          <button className="bg-[#21439c] text-white px-7 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10 shadow-[0_0_20px_rgba(33,67,156,0.8)] hover:scale-105 transition-all">
+          <button className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-900/40">
             UPGRADE
           </button>
         </div>
 
-        {/* SEARCH */}
+        {/* SEARCH: Old Version Border Style */}
         <div className="relative">
-          <input
-            placeholder="Search matches..."
-            className="w-full bg-transparent border-b border-white/10 py-4 text-sm text-white/60 placeholder:text-white/20 outline-none focus:border-[#00d4ff] transition-all"
+          <input 
+            placeholder="Search matches..." 
+            className="w-full bg-[#0f172a] border border-slate-800 p-4 rounded-2xl text-xs text-white placeholder:text-slate-600 outline-none focus:border-blue-500 transition-all"
           />
         </div>
       </header>
 
-      {/* MATCHES */}
+      {/* MATCH LIST */}
       <div className="flex flex-col">
         {matches.map((match: any) => (
           <MatchCard key={match._id.toString()} match={match} />
         ))}
       </div>
-
     </main>
   );
 }
