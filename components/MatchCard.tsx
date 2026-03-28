@@ -1,73 +1,78 @@
 'use client';
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 export default function MatchCard({ match }: { match: any }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
-  // Your 8 VIP Markets
+  // The 8 markets from your layout
   const marketKeys = [
-    "Overs_Unders", "Total_Corners", 
-    "Double_Chance", "Home_Overs", 
-    "Away_Overs", "BTTS",
-    "Handicap", "First_Half"
+    "BTTS", "OVERS_UNDERS", 
+    "DOUBLE_CHANCE", "HANDICAP", 
+    "CLEAN_SHEET", "FIRST_HALF",
+    "TOTAL_CORNERS", "HOME_OVERS"
   ];
 
   return (
-    <div className="max-w-xl mx-auto purple-card rounded-[24px] p-6 mb-5 transition-all">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">{match.league}</span>
-        <span className="text-[10px] font-bold text-slate-500 uppercase">{match.probability} Confidence</span>
+    <div className="w-full max-w-[500px] bg-[#161d2b] rounded-[40px] p-8 mb-6 border border-white/5">
+      {/* League & Pick Header */}
+      <div className="flex justify-between items-center mb-6">
+        <span className="text-[10px] font-bold text-[#4e638c] uppercase tracking-widest">{match.league}</span>
+        <span className="text-[10px] font-black text-[#00d4ff] uppercase italic tracking-tighter">
+          PICK: {match.prediction}
+        </span>
       </div>
 
-      {/* Teams & Main Pick */}
-      <div className="text-center">
-        <h2 className="text-xl font-black italic uppercase text-white tracking-tighter mb-4">
-          {match.homeTeam} <span className="text-purple-700/50">VS</span> {match.awayTeam}
-        </h2>
-        
-        <div className="bg-purple-600 py-3 rounded-xl mb-4 shadow-[0_0_15px_rgba(147,51,234,0.3)]">
-          <p className="text-[11px] font-black uppercase text-white tracking-widest italic">
-            MAIN PICK: {match.prediction}
-          </p>
-        </div>
+      {/* Teams Section */}
+      <div className="flex justify-between items-center mb-6 px-2">
+        <h2 className="text-xl font-black text-white uppercase tracking-tight w-[40%]">{match.homeTeam}</h2>
+        <span className="text-xs font-bold text-[#4e638c] italic">VS</span>
+        <h2 className="text-xl font-black text-white uppercase tracking-tight text-right w-[40%]">{match.awayTeam}</h2>
+      </div>
+
+      {/* The Teal Confidence Bar */}
+      <div className="w-full h-[6px] bg-white/5 rounded-full mb-8 overflow-hidden">
+        <div 
+          className="h-full bg-gradient-to-r from-[#00d4ff] to-[#00ffa3]" 
+          style={{ width: `${match.probability || 75}%` }}
+        />
       </div>
 
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full text-[10px] font-black uppercase text-purple-400 py-2 border border-purple-500/30 rounded-lg hover:bg-purple-500/10 transition-all mb-2"
+        className="w-full bg-[#1c2638] text-white text-[10px] font-bold uppercase tracking-[0.2em] py-5 rounded-[20px] mb-4 hover:bg-[#25324a] transition-all"
       >
-        {isExpanded ? "Hide Markets" : "View 8 VIP Analysis Markets"}
+        {isExpanded ? "HIDE MARKETS" : "VIEW 8 VIP MARKETS"}
       </button>
 
       {/* 8 Market Grid */}
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-purple-500/20">
+        <div className="animate-in fade-in duration-300">
           {!showPayment ? (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3 mt-4">
               {marketKeys.map((key) => (
                 <div 
                   key={key}
                   onClick={() => setShowPayment(true)}
-                  className="bg-black/40 border border-purple-500/20 p-4 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-500/50 transition-all group"
+                  className="market-button h-20 rounded-[24px] flex flex-col items-start justify-center px-6 cursor-pointer group"
                 >
-                  <Lock size={12} className="text-purple-500/30 mb-1 group-hover:text-purple-500" />
-                  <p className="text-[8px] font-bold text-purple-400/60 uppercase text-center">{key.replace(/_/g, ' ')}</p>
-                  <p className="text-[10px] font-black text-purple-900 blur-sm uppercase select-none">Locked</p>
+                  <p className="text-[9px] font-bold text-[#4e638c] uppercase mb-1">{key.replace(/_/g, ' ')}</p>
+                  <div className="flex items-center gap-2">
+                    <Lock size={10} className="text-[#00d4ff] opacity-40 group-hover:opacity-100" />
+                    <span className="text-[10px] font-bold text-white/10 select-none">LOCKED</span>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            /* Payment UI */
-            <div className="bg-purple-700 rounded-2xl p-6 text-center text-white shadow-2xl">
-              <h3 className="text-sm font-black uppercase italic mb-4">Unlock Professional Data</h3>
+            <div className="bg-[#00d4ff] rounded-[30px] p-8 text-center text-[#0d121d] mt-4">
+              <h3 className="text-lg font-black uppercase italic mb-4">Unlock VIP Suite</h3>
               <div className="space-y-2">
-                <a href="https://www.paypal.com/paypalme/GoalProZA/1USD" target="_blank" className="block bg-black/20 py-3 rounded-xl font-black text-[10px] uppercase">Daily — $1</a>
-                <a href="https://www.paypal.com/paypalme/GoalProZA/5USD" target="_blank" className="block bg-white text-purple-800 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg">Weekly — $5</a>
+                <a href="https://www.paypal.com/paypalme/GoalProZA/1USD" className="block bg-[#0d121d] text-white py-4 rounded-[18px] text-[10px] font-black uppercase">Daily Access — $1</a>
+                <a href="https://www.paypal.com/paypalme/GoalProZA/5USD" className="block border-2 border-[#0d121d] py-4 rounded-[18px] text-[10px] font-black uppercase">Weekly Pro — $5</a>
               </div>
-              <button onClick={() => setShowPayment(false)} className="mt-4 text-[9px] font-bold uppercase text-purple-200/50">Close</button>
+              <button onClick={() => setShowPayment(false)} className="mt-4 text-[9px] font-black uppercase opacity-60 italic">Back</button>
             </div>
           )}
         </div>
