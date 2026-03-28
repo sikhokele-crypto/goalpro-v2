@@ -2,16 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --neon-blue: #0066ff;
+}
+
 body {
   background-color: #000000;
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
 }
 
-.neon-border-glow {
-  box-shadow: 0 0 15px rgba(0, 102, 255, 0.3);
+/* Slim, focused neon border glow */
+.neon-box {
+  box-shadow: 0 0 10px rgba(0, 102, 255, 0.2);
+  border: 1px solid rgba(0, 102, 255, 0.2);
 }
 
-.neon-text-glow {
-  text-shadow: 0 0 10px rgba(0, 102, 255, 0.8);
+.neon-text {
+  text-shadow: 0 0 8px rgba(0, 102, 255, 0.6);
+}
+
+/* Custom scrollbar to match the black theme */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #0066ff;
+  border-radius: 10px;
 }
