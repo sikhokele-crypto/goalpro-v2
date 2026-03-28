@@ -14,16 +14,15 @@ const MatchSchema = new Schema(
       draw: { type: Number },
       away: { type: Number },
     },
-    // VIP Markets
     vipMarkets: {
-      oversUnders: { type: String },
-      firstHalfOvers: { type: String },
-      corners: { type: String },
-      doubleChance: { type: String },
-      homeOvers: { type: String },
-      awayOvers: { type: String },
-      btts: { type: String },
-      drawNoBet: { type: String },
+      oversUnders: { type: String },       // Overs & Unders
+      firstHalfOvers: { type: String },    // 1st Half O/U
+      totalCorners: { type: String },      // Total Corners
+      doubleChance: { type: String },      // Double Chance
+      homeTeamOvers: { type: String },     // Home Team O/U
+      awayTeamOvers: { type: String },     // Away Team O/U
+      btts: { type: String },              // BTTS
+      drawNoBet: { type: String },         // Draw No Bet
     }
   },
   { timestamps: true }
