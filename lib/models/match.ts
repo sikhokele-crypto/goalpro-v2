@@ -14,6 +14,17 @@ const MatchSchema = new Schema(
       draw: { type: Number },
       away: { type: Number },
     },
+    // VIP Markets
+    vipMarkets: {
+      oversUnders: { type: String },
+      firstHalfOvers: { type: String },
+      corners: { type: String },
+      doubleChance: { type: String },
+      homeOvers: { type: String },
+      awayOvers: { type: String },
+      btts: { type: String },
+      drawNoBet: { type: String },
+    }
   },
   { timestamps: true }
 );
