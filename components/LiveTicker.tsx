@@ -8,7 +8,6 @@ export default function LiveTicker() {
   useEffect(() => {
     const fetchLiveScores = async () => {
       try {
-        // Fetches all current live soccer events from TheSportsDB
         const res = await axios.get(`https://www.thesportsdb.com/api/v1/json/3/latestsoccer.php`);
         if (res.data && res.data.events) {
           setLiveMatches(res.data.events);
@@ -17,9 +16,8 @@ export default function LiveTicker() {
         console.error("Live Score Fetch Error:", err);
       }
     };
-
     fetchLiveScores();
-    const interval = setInterval(fetchLiveScores, 60000); // Refresh every minute
+    const interval = setInterval(fetchLiveScores, 60000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -40,21 +38,13 @@ export default function LiveTicker() {
         ))}
         {liveMatches.length === 0 && (
           <span className="text-[10px] font-black text-white uppercase italic mx-10">
-            Analyzing Live Markets... No active kick-offs currently.
+            AI ANALYZING LIVE MARKETS... STAY TUNED
           </span>
         )}
       </div>
-
       <style jsx>{`
-        @keyframes ticker {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-ticker {
-          display: flex;
-          width: fit-content;
-          animation: ticker 40s linear infinite;
-        }
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-ticker { display: flex; width: fit-content; animation: ticker 40s linear infinite; }
       `}</style>
     </div>
   );
