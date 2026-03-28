@@ -5,7 +5,7 @@ const MatchSchema = new Schema(
     homeTeam: { type: String, required: true },
     awayTeam: { type: String, required: true },
     league: { type: String },
-    date: { type: String, required: true }, // Changed from startTime to date
+    date: { type: String, required: true },
     prediction: { type: String },
     probability: { type: String },
     isElite: { type: Boolean, default: false },
