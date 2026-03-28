@@ -1,3 +1,4 @@
+// lib/scraper.ts
 import dbConnect from "./dbConnect";
 import Match from "./models/match";
 
@@ -5,10 +6,9 @@ export async function scrapeMatches() {
   await dbConnect();
 
   try {
-    // We use the 'upcoming' endpoint which is the broadest possible search
-    // Adding more regions (au, uk, us, eu) ensures we find games across all timezones
+    // Fetch all upcoming soccer matches from multiple regions
     const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=eu,uk,us,au&markets=h2h&bookmakers=betway,pinnacle,betfair_ex,williamhill,unibet_eu`
+      `https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=eu,uk,us,au&markets=h2h`
     );
 
     if (!response.ok) {
@@ -19,34 +19,36 @@ export async function scrapeMatches() {
     const data = await response.json();
 
     const matchesToSave = data.map((item: any) => {
-      // 1. Try to find Betway first
-      // 2. Fallback to ANY available bookmaker to ensure we don't skip the match
-      const bookmaker = 
-        item.bookmakers?.find((b: any) => b.title.toLowerCase() === "betway") || 
+      // 1. Try Betway first, fallback to any available bookmaker
+      const bookmaker =
+        item.bookmakers?.find((b: any) => b.title.toLowerCase() === "betway") ||
         item.bookmakers?.[0];
 
-      if (!bookmaker) return null;
+      if (!bookmaker || !bookmaker.markets) return null;
 
-      const market = bookmaker.markets?.find((m: any) => m.key === "h2h");
+      const market = bookmaker.markets.find((m: any) => m.key === "h2h");
       if (!market || !market.outcomes) return null;
 
       const hPrice = market.outcomes.find((o: any) => o.name === item.home_team)?.price || 0;
       const aPrice = market.outcomes.find((o: any) => o.name === item.away_team)?.price || 0;
       const dPrice = market.outcomes.find((o: any) => o.name === "Draw")?.price || 0;
 
+      // Skip if any odds missing
       if (!hPrice || !aPrice || !dPrice) return null;
 
+      // Calculate implied probabilities
       const hProb = 1 / hPrice;
       const aProb = 1 / aPrice;
       const dProb = 1 / dPrice;
-      
+
+      // Bookmaker margin
       const margin = hProb + aProb + dProb - 1;
       const reliabilityScore = 1 - margin;
 
+      // AI Prediction Logic
       let prediction = "";
       let confidence = 0;
 
-      // AI Logic for Predictions
       if (hProb > 0.65) {
         prediction = "HOME WIN";
         confidence = hProb * reliabilityScore;
@@ -81,10 +83,12 @@ export async function scrapeMatches() {
     }).filter(Boolean);
 
     if (matchesToSave.length > 0) {
+      // Clear old matches and insert new ones
       await Match.deleteMany({});
       await Match.insertMany(matchesToSave);
     }
 
+    console.log(`✅ AI Scraper: Synced ${matchesToSave.length} matches`);
     return {
       success: true,
       count: matchesToSave.length,
