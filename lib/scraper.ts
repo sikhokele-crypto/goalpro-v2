@@ -4,8 +4,10 @@ import Match from "./models/match";
 export async function scrapeMatches() {
   await dbConnect();
 
-  // The specific keys for England League 1, League 2, and International Friendlies
-  const sportKeys = [
+  // 1. GLOBAL FIRST: Broad search to fill the 100+ goal
+  // 2. SPECIFIC SECOND: Targets your preferred English & International leagues
+  const leagueKeys = [
+    "soccer", // The global fallback key
     "soccer_england_league1", 
     "soccer_england_league2", 
     "soccer_intl_friendlies"
@@ -14,20 +16,25 @@ export async function scrapeMatches() {
   try {
     let allMatches: any[] = [];
 
-    // We loop through each league to ensure we get ALL games for each one
-    for (const key of sportKeys) {
+    // Loop through the keys. 'soccer' will give us the biggest initial batch.
+    for (const key of leagueKeys) {
       const response = await fetch(
         `https://api.the-odds-api.com/v4/sports/${key}/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=uk,eu&markets=h2h`
       );
 
       if (response.ok) {
         const data = await response.json();
-        allMatches = [...allMatches, ...data];
+        if (Array.isArray(data)) {
+          allMatches = [...allMatches, ...data];
+        }
       }
     }
 
-    const matchesToSave = allMatches.map((item: any) => {
-      // Prioritize Betway odds as requested
+    // Remove duplicates (in case a match appears in both 'soccer' and a specific league)
+    const uniqueMatches = Array.from(new Map(allMatches.map(m => [m.id, m])).values());
+
+    const matchesToSave = uniqueMatches.map((item: any) => {
+      // Find Betway, or fallback to any available bookie
       const bookmaker = 
         item.bookmakers?.find((b: any) => b.title.toLowerCase() === "betway") || 
         item.bookmakers?.[0];
@@ -43,6 +50,7 @@ export async function scrapeMatches() {
 
       if (!hPrice || !aPrice || !dPrice) return null;
 
+      // AI Probability & Reliability Logic
       const hProb = 1 / hPrice;
       const aProb = 1 / aPrice;
       const dProb = 1 / dPrice;
@@ -76,7 +84,6 @@ export async function scrapeMatches() {
     }).filter(Boolean);
 
     if (matchesToSave.length > 0) {
-      // Wipe old data and save the specific league results
       await Match.deleteMany({});
       await Match.insertMany(matchesToSave);
     }
@@ -84,7 +91,7 @@ export async function scrapeMatches() {
     return { 
       success: true, 
       count: matchesToSave.length, 
-      message: `Synced ${matchesToSave.length} matches from League 1, 2, and Friendlies.` 
+      message: `Global & Specific sync complete. Found ${matchesToSave.length} matches.` 
     };
 
   } catch (error: any) {
