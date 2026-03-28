@@ -11,29 +11,24 @@ export default async function Home() {
   const matches = await getMatches();
 
   return (
-    <main className="container mx-auto px-6 py-12">
-      {/* Header Section */}
-      <div className="mb-16 text-center">
-        <h1 className="text-6xl font-black italic tracking-tighter text-white purple-text-glow">
-          GOAL<span className="text-purple-500">PRO</span>
-        </h1>
-        <p className="text-xs font-black text-purple-400 uppercase tracking-[0.6em] mt-3 opacity-60">
-          Professional Wagering Intelligence
-        </p>
-      </div>
-
-      {/* Full Width Grid */}
-      <div className="space-y-8">
-        {matches.length > 0 ? (
-          matches.map((match: any) => (
-            <MatchCard key={match._id.toString()} match={match} />
-          ))
-        ) : (
-          <div className="text-center py-20">
-            <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-purple-300/50 font-bold uppercase text-xs tracking-widest">Scraping Worldwide Leagues...</p>
+    <main className="min-h-screen p-4 max-w-xl mx-auto pb-32">
+      <header className="sticky top-0 bg-[#020617]/95 pt-6 pb-6 mb-10 z-50">
+        <div className="flex justify-between items-center">
+          <h1 className="text-5xl font-black text-purple-500 italic purple-text-shadow tracking-tighter">
+            GOALPRO
+          </h1>
+          <div className="bg-purple-600/20 border border-purple-500/30 px-4 py-2 rounded-xl">
+             <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">
+               {matches.length} LIVE
+             </span>
           </div>
-        )}
+        </div>
+      </header>
+
+      <div className="space-y-4">
+        {matches.map((match: any) => (
+          <MatchCard key={match._id.toString()} match={match} />
+        ))}
       </div>
     </main>
   );
