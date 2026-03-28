@@ -1,37 +1,41 @@
-// lib/scraper.ts
 import dbConnect from "./dbConnect";
 import Match from "./models/match";
 
 export async function scrapeMatches() {
   await dbConnect();
 
-  try {
-    // FIX: We target 'upcoming' as the sport group to get hundreds of matches 
-    // instead of just the next 8 immediate ones.
-    const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/upcoming/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=eu,uk,us,au&markets=h2h`
-    );
+  // The specific keys for England League 1, League 2, and International Friendlies
+  const sportKeys = [
+    "soccer_england_league1", 
+    "soccer_england_league2", 
+    "soccer_intl_friendlies"
+  ];
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `API Error: ${response.status}`);
+  try {
+    let allMatches: any[] = [];
+
+    // We loop through each league to ensure we get ALL games for each one
+    for (const key of sportKeys) {
+      const response = await fetch(
+        `https://api.the-odds-api.com/v4/sports/${key}/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=uk,eu&markets=h2h`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        allMatches = [...allMatches, ...data];
+      }
     }
 
-    const data = await response.json();
-
-    // Filter to ensure we only get Soccer matches from the 'upcoming' global list
-    const soccerMatches = data.filter((item: any) => item.sport_key.includes('soccer'));
-
-    const matchesToSave = soccerMatches.map((item: any) => {
-      // 1. Try Betway first, fallback to any available bookmaker
-      const bookmaker =
-        item.bookmakers?.find((b: any) => b.title.toLowerCase() === "betway") ||
+    const matchesToSave = allMatches.map((item: any) => {
+      // Prioritize Betway odds as requested
+      const bookmaker = 
+        item.bookmakers?.find((b: any) => b.title.toLowerCase() === "betway") || 
         item.bookmakers?.[0];
 
-      if (!bookmaker || !bookmaker.markets) return null;
+      if (!bookmaker) return null;
 
-      const market = bookmaker.markets.find((m: any) => m.key === "h2h");
-      if (!market || !market.outcomes) return null;
+      const market = bookmaker.markets?.find((m: any) => m.key === "h2h");
+      if (!market) return null;
 
       const hPrice = market.outcomes.find((o: any) => o.name === item.home_team)?.price || 0;
       const aPrice = market.outcomes.find((o: any) => o.name === item.away_team)?.price || 0;
@@ -42,12 +46,11 @@ export async function scrapeMatches() {
       const hProb = 1 / hPrice;
       const aProb = 1 / aPrice;
       const dProb = 1 / dPrice;
-
-      const margin = hProb + aProb + dProb - 1;
+      const margin = (hProb + aProb + dProb) - 1;
       const reliabilityScore = 1 - margin;
 
-      let prediction = "";
-      let confidence = 0;
+      let prediction = "OVER 1.5 GOALS";
+      let confidence = 0.60;
 
       if (hProb > 0.65) {
         prediction = "HOME WIN";
@@ -58,12 +61,6 @@ export async function scrapeMatches() {
       } else if (hProb > 0.45 && dProb > 0.25) {
         prediction = "1X (HOME/DRAW)";
         confidence = (hProb + dProb) * 0.8;
-      } else if (hProb + aProb > 0.8) {
-        prediction = "NO DRAW (12)";
-        confidence = 0.75;
-      } else {
-        prediction = "OVER 1.5 GOALS";
-        confidence = 0.6;
       }
 
       return {
@@ -74,25 +71,22 @@ export async function scrapeMatches() {
         prediction,
         probability: `${Math.round(confidence * 100)}%`,
         isElite: confidence > 0.78 && margin < 0.08,
-        odds: {
-          home: hPrice,
-          draw: dPrice,
-          away: aPrice,
-        },
+        odds: { home: hPrice, draw: dPrice, away: aPrice }
       };
     }).filter(Boolean);
 
     if (matchesToSave.length > 0) {
+      // Wipe old data and save the specific league results
       await Match.deleteMany({});
       await Match.insertMany(matchesToSave);
     }
 
-    console.log(`✅ AI Scraper: Synced ${matchesToSave.length} soccer matches`);
-    return {
-      success: true,
-      count: matchesToSave.length,
-      message: `Sync complete. Found ${matchesToSave.length} matches globally.`,
+    return { 
+      success: true, 
+      count: matchesToSave.length, 
+      message: `Synced ${matchesToSave.length} matches from League 1, 2, and Friendlies.` 
     };
+
   } catch (error: any) {
     console.error("Scraper Error:", error.message);
     return { success: false, error: error.message };
