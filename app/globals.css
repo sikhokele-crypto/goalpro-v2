@@ -3,35 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --neon-blue: #0066ff;
+  --neon-purple: #9333ea;
+  --deep-bg: #1e1b4b; /* Deep Indigo/Purple */
 }
 
 body {
-  background-color: #000000;
+  background: radial-gradient(circle at top, #2e1065, #0f172a);
   color: #ffffff;
   -webkit-font-smoothing: antialiased;
-  margin: 0;
-  padding: 0;
+  min-height: 100vh;
 }
 
-/* Slim, focused neon border glow */
-.neon-box {
-  box-shadow: 0 0 10px rgba(0, 102, 255, 0.2);
-  border: 1px solid rgba(0, 102, 255, 0.2);
+.purple-glow-box {
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.2);
+  border: 1px solid rgba(147, 51, 234, 0.3);
 }
 
-.neon-text {
-  text-shadow: 0 0 8px rgba(0, 102, 255, 0.6);
+.purple-text-glow {
+  text-shadow: 0 0 12px rgba(147, 51, 234, 0.8);
 }
 
-/* Custom scrollbar to match the black theme */
+/* Custom Purple Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: #0f172a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #0066ff;
+  background: #a855f7;
   border-radius: 10px;
 }
