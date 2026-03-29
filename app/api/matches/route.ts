@@ -2,28 +2,23 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Match from '@/lib/models/match';
 
-export const revalidate = 3600;
+export const revalidate = 60; // Refresh every minute
 
 export async function GET() {
   await dbConnect();
-
-  const oneHourAgo = new Date(Date.now() - 3600000);
-
-  const cached = await Match.find({
-    updatedAt: { $gt: oneHourAgo }
-  });
-
-  if (cached.length > 0) {
-    return NextResponse.json(cached);
-  }
-
+  
   try {
+    // We fetch from a broader set of leagues to ensure "Today" has games
     const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=uk&markets=h2h`,
+      `https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=uk&markets=h2h`,
       { cache: "no-store" }
     );
 
     const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("Invalid API Response");
+    }
 
     const formatted = data.map((m: any) => {
       const book = m.bookmakers?.[0];
@@ -35,20 +30,24 @@ export async function GET() {
         league: m.sport_title,
         startTime: m.commence_time,
         odds: {
-          home: market?.outcomes?.[0]?.price,
-          draw: market?.outcomes?.[2]?.price,
-          away: market?.outcomes?.[1]?.price,
+          home: market?.outcomes?.find((o: any) => o.name === m.home_team)?.price || 0,
+          draw: market?.outcomes?.find((o: any) => o.name === "Draw")?.price || 0,
+          away: market?.outcomes?.find((o: any) => o.name === m.away_team)?.price || 0,
         },
         updatedAt: new Date()
       };
     });
 
+    // Clear and update database with fresh Sunday games
     await Match.deleteMany({});
-    await Match.insertMany(formatted);
+    const savedMatches = await Match.insertMany(formatted);
 
-    return NextResponse.json(formatted);
+    return NextResponse.json(savedMatches);
 
-  } catch {
-    return NextResponse.json(cached);
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    // Fallback to whatever is in the DB if the API fails or hits limit
+    const fallback = await Match.find({});
+    return NextResponse.json(fallback);
   }
 }
