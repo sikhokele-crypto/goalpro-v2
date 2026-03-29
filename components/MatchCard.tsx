@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   Crown,
   Zap,
-  Activity,
   CornerDownRight,
   TrendingUp,
   Shield,
@@ -31,16 +30,9 @@ interface MatchCardProps {
   onUpgrade: () => void;
 }
 
-export default function MatchCard({
-  match,
-  isPaid,
-  onUpgrade,
-}: MatchCardProps) {
-  const factorial = (n: number): number =>
-    n <= 1 ? 1 : n * factorial(n - 1);
-
-  const poisson = (lambda: number, x: number) =>
-    (Math.pow(lambda, x) * Math.exp(-lambda)) / factorial(x);
+export default function MatchCard({ match, isPaid, onUpgrade }: MatchCardProps) {
+  const factorial = (n: number): number => (n <= 1 ? 1 : n * factorial(n - 1));
+  const poisson = (lambda: number, x: number) => (Math.pow(lambda, x) * Math.exp(-lambda)) / factorial(x);
 
   const hL = match.homeAttack * 1.45;
   const aL = match.awayAttack * 1.15;
@@ -70,14 +62,12 @@ export default function MatchCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-[#050816] via-[#0f172a] to-[#111827] shadow-2xl mb-10 transition-all hover:border-blue-500/20"
+      className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-[#050816] via-[#0f172a] to-[#111827] shadow-2xl mb-10"
     >
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full" />
-      
       <div className="relative z-10">
         <div className="p-8 border-b border-white/10">
           <div className="flex justify-between items-center mb-8">
-            <span className="text-[10px] bg-blue-500/15 text-blue-300 border border-blue-400/20 px-4 py-1.5 rounded-full font-black uppercase tracking-widest">
+            <span className="text-[10px] bg-blue-500/15 text-blue-300 border border-blue-400/20 px-4 py-1.5 rounded-full font-black uppercase tracking-widest uppercase">
               {match.league}
             </span>
             <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
@@ -85,13 +75,13 @@ export default function MatchCard({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              AI Verification Active
+              AI Live
             </div>
           </div>
 
           <div className="flex justify-between items-center px-2 mb-10">
             <TeamDisplay logo={match.homeLogo} name={match.homeTeam} side="Home" />
-            <span className="text-slate-800 font-black text-4xl italic tracking-tighter uppercase">VS</span>
+            <span className="text-slate-800 font-black text-4xl italic uppercase tracking-tighter">VS</span>
             <TeamDisplay logo={match.awayLogo} name={match.awayTeam} side="Away" />
           </div>
 
@@ -107,12 +97,8 @@ export default function MatchCard({
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center text-center px-8 bg-slate-950/60 backdrop-blur-xl rounded-b-[2.5rem]">
               <Crown className="text-amber-500 mb-4" size={42} fill="currentColor" />
               <h5 className="text-white font-black text-2xl uppercase mb-2 italic">Unlock 8 VIP Markets</h5>
-              <p className="text-slate-400 text-sm mb-8 max-w-[280px]">Get BTTS, Corners, DNB, and Half-Time Data with 98% accuracy.</p>
-              <button 
-                onClick={onUpgrade} 
-                className="w-full max-w-xs py-5 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-600 text-black font-black uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
-              >
-                Upgrade to VIP
+              <button onClick={onUpgrade} className="w-full max-w-xs py-5 rounded-2xl bg-amber-500 text-black font-black uppercase tracking-widest shadow-xl transition-all">
+                Upgrade Now
               </button>
             </div>
           )}
@@ -140,12 +126,7 @@ export default function MatchCard({
 
 function MarketBox({ val, label, delay }: any) {
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }} 
-      animate={{ opacity: 1, scale: 1 }} 
-      transition={{ delay }}
-      className="bg-white/5 border border-white/10 p-5 rounded-[2rem] text-center"
-    >
+    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay }} className="bg-white/5 border border-white/10 p-5 rounded-[2rem] text-center">
       <p className="text-white font-black text-2xl mb-1">{val}</p>
       <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{label}</p>
     </motion.div>
@@ -156,7 +137,7 @@ function TeamDisplay({ logo, name, side }: any) {
   return (
     <div className="text-center w-[40%]">
       <div className="flex justify-center mb-4">
-        <div className="w-18 h-18 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+        <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
           {logo ? <Image src={logo} alt={name} width={42} height={42} /> : <Shield className="text-slate-600" size={28} />}
         </div>
       </div>
@@ -168,12 +149,9 @@ function TeamDisplay({ logo, name, side }: any) {
 
 function VipItem({ label, val, icon }: any) {
   return (
-    <motion.div 
-      whileHover={{ scale: 1.02 }}
-      className="bg-white/5 border border-white/10 p-5 rounded-[1.5rem] flex flex-col justify-center min-h-[95px]"
-    >
-      <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-3 flex items-center gap-2">
-        {icon ? <CornerDownRight size={10} className="text-amber-500" /> : <div className="w-1 h-1 bg-amber-400 rounded-full" />}
+    <motion.div whileHover={{ scale: 1.02 }} className="bg-white/5 border border-white/10 p-5 rounded-[1.5rem] flex flex-col justify-center min-h-[95px]">
+      <span className="text-[8px] text-slate-500 font-black uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+        {icon ? <CornerDownRight size={10} className="text-amber-500" /> : <div className="w-1 h-1 bg-amber-500 rounded-full" />}
         {label}
       </span>
       <span className="text-[14px] font-black text-amber-500 uppercase italic tracking-tighter flex items-center gap-2">
