@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Script from "next/script";
+import { motion, AnimatePresence } from "framer-motion";
+import { Crown, Zap, Loader2, ShieldAlert } from "lucide-react";
 import LiveTicker from "@/components/LiveTicker";
 import MatchCard from "@/components/MatchCard";
 
-// Your Verified Production Credentials
 const PAYPAL_CLIENT_ID = "AT-mbb_TV5_ftmtSk9AY3P7qTT8rewfzT3qsxw4gu_rNbGgLsCC8nn0Ux17VcL5vYoidoYxWYwl4uqxS";
 const PUB_ID = "4608500942276282";
 
@@ -15,14 +16,14 @@ export default function Home() {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch Dynamic Matches from your MongoDB API
+  // 1. Fetch Dynamic Matches from MongoDB API
   useEffect(() => {
     const fetchMatches = async () => {
       try {
         const res = await fetch('/api/matches');
         const data = await res.json();
         if (data && !data.error) {
-          setMatches(data);
+          setMatches(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.error("Database connection failed:", err);
@@ -33,7 +34,7 @@ export default function Home() {
     fetchMatches();
   }, []);
 
-  // 2. PayPal SDK Logic for VIP Upgrades
+  // 2. PayPal SDK Logic
   useEffect(() => {
     if (showModal && (window as any).paypal) {
       const timer = setTimeout(() => {
@@ -60,104 +61,133 @@ export default function Home() {
   }, [showModal]);
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white selection:bg-blue-500/30">
-      {/* Load PayPal SDK only once */}
+    <main className="relative min-h-screen bg-[#020617] text-white overflow-x-hidden">
+      {/* External Scripts */}
       <Script 
         src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`} 
         strategy="beforeInteractive" 
       />
+      <Script 
+        async 
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-${PUB_ID}`} 
+        crossOrigin="anonymous" 
+      />
 
-      {/* 📡 Live Score Ticker (Global Real-Time Data) */}
       <LiveTicker />
 
-      <div className="max-w-[500px] px-4 mx-auto pt-10 pb-32">
+      <div className="max-w-[500px] px-5 mx-auto pt-12 pb-32 relative z-10">
         {/* App Header */}
-        <header className="flex justify-between items-center mb-8">
+        <header className="flex justify-between items-end mb-10">
           <div>
-            <h1 className="text-4xl font-black italic text-blue-500 tracking-tighter leading-none">GOALPRO</h1>
-            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1 ml-1">v2.0 AI Prediction Engine</p>
+            <h1 className="text-5xl font-black italic text-blue-500 tracking-tighter leading-none mb-2">
+              GOALPRO
+            </h1>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-1">
+              v2.0 AI Prediction Engine
+            </p>
           </div>
           <button 
             onClick={() => !isPaid && setShowModal(true)} 
-            className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${
-              isPaid ? 'bg-emerald-600 border-b-4 border-emerald-900' : 'bg-blue-600 border-b-4 border-blue-900 active:border-b-0 active:translate-y-1'
+            className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 ${
+              isPaid 
+                ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
+                : 'bg-blue-600 text-white shadow-blue-600/20 border-b-4 border-blue-800'
             }`}
           >
             {isPaid ? "VIP ACTIVE" : "UPGRADE"}
           </button>
         </header>
 
-        {/* Feature Legend */}
-        <div className="mb-8 p-4 bg-slate-900/40 border border-slate-800 rounded-2xl flex items-center justify-between">
-          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Premium Tiers</span>
+        {/* Status Bar */}
+        <div className="mb-10 p-5 bg-white/[0.03] border border-white/10 rounded-[2rem] flex items-center justify-between backdrop-blur-md">
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Premium Tiers</span>
           <div className="flex gap-4">
-            <span className="text-[9px] font-black text-amber-500 italic uppercase">● Bankers Unlocked</span>
-            <span className="text-[9px] font-black text-blue-400 italic uppercase">● 8 VIP Markets</span>
+            <span className="text-[10px] font-black text-amber-500 italic uppercase flex items-center gap-1">
+              <Crown size={12} /> Bankers
+            </span>
+            <span className="text-[10px] font-black text-blue-400 italic uppercase flex items-center gap-1">
+              <Zap size={12} fill="currentColor" /> 8 VIP
+            </span>
           </div>
         </div>
 
         {/* Dynamic Match Feed */}
-        <div className="flex flex-col">
+        <div className="space-y-8">
           {loading ? (
-            <div className="py-20 text-center flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <p className="text-[10px] font-black text-blue-500 uppercase italic tracking-widest">Analyzing Database Markets...</p>
+            <div className="py-24 text-center flex flex-col items-center gap-4">
+              <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+              <p className="text-[11px] font-black text-blue-500 uppercase italic tracking-[0.2em]">
+                Analyzing ZAR Markets...
+              </p>
             </div>
-          ) : (
+          ) : matches.length > 0 ? (
             matches.map((match, index) => (
-              <div key={match._id || match.id}>
-                {/* 💸 AD SLOT: Injected every 3 matches to monetize free users */}
-                {index % 3 === 0 && index !== 0 && (
-                  <div className="w-full bg-slate-900/40 border border-dashed border-slate-800 rounded-[36px] p-8 mb-8 text-center overflow-hidden">
-                    <p className="text-[8px] text-slate-600 font-bold uppercase tracking-[0.5em] mb-4">Sponsored</p>
-                    <ins className="adsbygoogle"
-                         style={{ display: 'block' }}
-                         data-ad-client={`ca-pub-${PUB_ID}`}
-                         data-ad-slot="auto"
-                         data-ad-format="auto"
-                         data-full-width-responsive="true"></ins>
-                    <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }} />
-                  </div>
-                )}
-
+              <div key={match._id || index}>
                 <MatchCard 
                   match={match} 
                   isPaid={isPaid} 
                   onUpgrade={() => setShowModal(true)} 
                 />
+                
+                {/* Auto-injected Ads for Revenue */}
+                {index % 2 === 0 && index !== 0 && !isPaid && (
+                  <div className="my-8 opacity-60 hover:opacity-100 transition-opacity">
+                    <ins className="adsbygoogle"
+                         style={{ display: 'block' }}
+                         data-ad-client={`ca-pub-${PUB_ID}`}
+                         data-ad-slot="auto"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true" />
+                    <script dangerouslySetInnerHTML={{ __html: '(window.adsbygoogle = window.adsbygoogle || []).push({});' }} />
+                  </div>
+                )}
               </div>
             ))
-          )}
-
-          {!loading && matches.length === 0 && (
-            <div className="py-20 text-center text-slate-600 font-bold uppercase text-[10px] tracking-widest">
-              No Matches Found in Database
+          ) : (
+            <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
+              <ShieldAlert className="mx-auto text-slate-700 mb-4" size={40} />
+              <p className="text-slate-600 font-black uppercase text-[10px] tracking-widest">
+                No active markets in database
+              </p>
             </div>
           )}
         </div>
       </div>
 
       {/* VIP Checkout Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-6 backdrop-blur-lg animate-in fade-in duration-300">
-          <div className="bg-[#0f172a] p-10 rounded-[48px] w-full max-w-sm border border-blue-500/30 text-center shadow-2xl">
-            <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-600/20">
-              <span className="text-3xl">💎</span>
-            </div>
-            <h2 className="text-3xl font-black italic text-white mb-2 tracking-tighter uppercase">GOALPRO VIP</h2>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-8">Unlimited Access for 24 Hours</p>
-            
-            <div id="paypal-button-container" className="min-h-[150px] w-full"></div>
-
-            <button 
-              onClick={() => setShowModal(false)} 
-              className="mt-8 text-[9px] font-black text-slate-600 hover:text-white uppercase tracking-[0.3em] transition-all"
+      <AnimatePresence>
+        {showModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-6 backdrop-blur-2xl"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-[#0f172a] p-12 rounded-[3.5rem] w-full max-w-sm border border-blue-500/30 text-center shadow-[0_0_50px_rgba(59,130,246,0.2)]"
             >
-              Return to Dashboard
-            </button>
-          </div>
-        </div>
-      )}
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
+                <Crown size={40} className="text-white" fill="white" />
+              </div>
+              <h2 className="text-4xl font-black italic text-white mb-3 tracking-tighter uppercase">GOALPRO VIP</h2>
+              <p className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-10 leading-relaxed">
+                Full access to Bankers & <br/>All 8 Betting Markets
+              </p>
+              
+              <div id="paypal-button-container" className="min-h-[150px] w-full"></div>
+
+              <button 
+                onClick={() => setShowModal(false)} 
+                className="mt-10 text-[10px] font-black text-slate-600 hover:text-white uppercase tracking-[0.4em] transition-all"
+              >
+                Close Dashboard
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
