@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Match from '@/lib/models/match';
 
-export const revalidate = 3600; // 1 hour edge cache
+export const revalidate = 3600;
 
 export async function GET() {
   await dbConnect();
 
   const oneHourAgo = new Date(Date.now() - 3600000);
 
-  // 1. Try DB cache
   const cached = await Match.find({
     updatedAt: { $gt: oneHourAgo }
   });
@@ -19,22 +18,16 @@ export async function GET() {
   }
 
   try {
-    // 2. Fetch REAL ODDS (The Odds API)
     const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=uk&markets=h2h,totals,btts`,
+      `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?apiKey=${process.env.ODDS_API_KEY}&regions=uk&markets=h2h`,
       { cache: "no-store" }
     );
 
     const data = await res.json();
 
     const formatted = data.map((m: any) => {
-      const bookmaker = m.bookmakers?.[0];
-
-      const h2h = bookmaker?.markets.find((x: any) => x.key === "h2h");
-
-      const homeOdds = h2h?.outcomes.find((o: any) => o.name === m.home_team)?.price;
-      const awayOdds = h2h?.outcomes.find((o: any) => o.name === m.away_team)?.price;
-      const drawOdds = h2h?.outcomes.find((o: any) => o.name === "Draw")?.price;
+      const book = m.bookmakers?.[0];
+      const market = book?.markets?.[0];
 
       return {
         homeTeam: m.home_team,
@@ -42,9 +35,9 @@ export async function GET() {
         league: m.sport_title,
         startTime: m.commence_time,
         odds: {
-          home: homeOdds,
-          draw: drawOdds,
-          away: awayOdds,
+          home: market?.outcomes?.[0]?.price,
+          draw: market?.outcomes?.[2]?.price,
+          away: market?.outcomes?.[1]?.price,
         },
         updatedAt: new Date()
       };
@@ -55,8 +48,7 @@ export async function GET() {
 
     return NextResponse.json(formatted);
 
-  } catch (e) {
-    const fallback = await Match.find().limit(10);
-    return NextResponse.json(fallback);
+  } catch {
+    return NextResponse.json(cached);
   }
 }
