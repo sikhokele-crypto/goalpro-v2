@@ -46,7 +46,6 @@ export default function MatchCard({
   onUpgrade,
 }: MatchCardProps) {
   // --- 🧮 STATISTICAL PREDICTION ENGINE ---
-  // Calculates probability using the Poisson Distribution formula
   const factorial = (n: number): number =>
     n <= 1 ? 1 : n * factorial(n - 1);
 
@@ -65,18 +64,15 @@ export default function MatchCard({
     for (let a = 0; a <= 5; a++) {
       const prob = poisson(hL, h) * poisson(aL, a);
       
-      // Outcome Probabilities
       if (h > a) hWin += prob;
       else if (h === a) draw += prob;
       else aWin += prob;
 
-      // Market Probabilities
       if (h > 0 && a > 0) btts += prob;
       if (h + a > 2.5) ov25 += prob;
       if (h > 1.5) hOv15 += prob;
       if (a > 1.5) aOv15 += prob;
 
-      // First Half Intensity (Approx 35% of total match weight)
       const fhp = poisson(hL * 0.35, h) * poisson(aL * 0.35, a);
       if (h + a > 0.5) fhOv05 += fhp;
     }
@@ -90,7 +86,7 @@ export default function MatchCard({
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-[#050816] via-[#0f172a] to-[#111827] shadow-2xl mb-12 group hover:border-blue-500/30 transition-all duration-500"
+      className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-[#050816] via-[#0f172a] to-[#111827] shadow-2xl mb-12 group hover:border-blue-500/30 transition-all duration-500 font-sans"
     >
       {/* Dynamic Background Glow */}
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full group-hover:bg-blue-600/20 transition-colors" />
